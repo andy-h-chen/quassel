@@ -20,7 +20,7 @@
 
 #include "quassel.h"
 
-#if defined(HAVE_EXECINFO) && !defined(Q_OS_MAC)
+#if defined(HAVE_EXECINFO) && !defined(Q_OS_MAC) && !defined(Q_OS_BLACKBERRY)
 #  define BUILD_CRASHHANDLER
 #  include <execinfo.h>
 #  include <dlfcn.h>

@@ -137,14 +137,22 @@ endif()
 if(CMAKE_COMPILER_IS_GNUCXX)
   # Let's just hope that all gccs support these options and skip the tests...
   # -fno-strict-aliasing is needed apparently for Qt < 4.6
-  set(CMAKE_CXX_FLAGS                  "${CMAKE_CXX_FLAGS} -ansi -Wall -Wextra -Wnon-virtual-dtor -fno-strict-aliasing")
+  if(${CMAKE_SYSTEM_NAME} STREQUAL "QNX")
+    set(CMAKE_CXX_FLAGS                  "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wnon-virtual-dtor -fno-strict-aliasing")
+  else()
+    set(CMAKE_CXX_FLAGS                  "${CMAKE_CXX_FLAGS} -ansi -Wall -Wextra -Wnon-virtual-dtor -fno-strict-aliasing")
+  endif()
 #  set(CMAKE_CXX_FLAGS_RELEASE          "-O2")   # use CMake default
 #  set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "-g -O2")  # use CMake default
   set(CMAKE_CXX_FLAGS_DEBUG             "-g -ggdb -O2 -fno-reorder-blocks -fno-schedule-insns -fno-inline")
   set(CMAKE_CXX_FLAGS_DEBUGFULL         "-g3 -ggdb -fno-inline")
   set(CMAKE_CXX_FLAGS_PROFILE           "-g3 -ggdb -fno-inline -ftest-coverage -fprofile-arcs")
 
-  set(CMAKE_CXX_FLAGS                  "${CMAKE_CXX_FLAGS} -ansi -W -Wall -Wextra -Wnon-virtual-dtor -fno-strict-aliasing -Wundef -Wcast-align -Wpointer-arith -Wformat-security -fno-check-new -fno-common")
+  if(${CMAKE_SYSTEM_NAME} STREQUAL "QNX")
+    set(CMAKE_CXX_FLAGS                  "${CMAKE_CXX_FLAGS} -W -Wall -Wextra -Wnon-virtual-dtor -fno-strict-aliasing -Wundef -Wpointer-arith -Wformat-security -fno-check-new -fno-common")
+  else()
+    set(CMAKE_CXX_FLAGS                  "${CMAKE_CXX_FLAGS} -ansi -W -Wall -Wextra -Wnon-virtual-dtor -fno-strict-aliasing -Wundef -Wcast-align -Wpointer-arith -Wformat-security -fno-check-new -fno-common")
+  endif()
 
   check_cxx_compiler_flag(-Woverloaded-virtual CXX_W_OVERLOADED_VIRTUAL)
   if(CXX_W_OVERLOADED_VIRTUAL)
@@ -525,14 +533,16 @@ endif(NOT WIN32)
 setup_qt_variables()
 include_directories(${QUASSEL_QT_INCLUDES})
 
-add_executable(genversion ${CMAKE_SOURCE_DIR}/src/common/genversion.cpp)
-target_link_libraries(genversion ${QUASSEL_QT_LIBRARIES})
-set_target_properties(genversion PROPERTIES COMPILE_FLAGS "${QUASSEL_QT_COMPILEFLAGS}")
+if(NOT ${CMAKE_SYSTEM_NAME} STREQUAL "QNX")
+    add_executable(genversion ${CMAKE_SOURCE_DIR}/src/common/genversion.cpp)
+    target_link_libraries(genversion ${QUASSEL_QT_LIBRARIES})
+    set_target_properties(genversion PROPERTIES COMPILE_FLAGS "${QUASSEL_QT_COMPILEFLAGS}")
 
-get_target_property(GENVERSION_EXECUTABLE genversion LOCATION)
-add_custom_target(genversion_run ALL ${GENVERSION_EXECUTABLE}
+    get_target_property(GENVERSION_EXECUTABLE genversion LOCATION)
+    add_custom_target(genversion_run ALL ${GENVERSION_EXECUTABLE}
                   ${CMAKE_SOURCE_DIR} ${CMAKE_BINARY_DIR}/src/version.gen)
-add_dependencies(genversion_run genversion)
+    add_dependencies(genversion_run genversion)
+endif()
 
 # These variables will be added to the main targets (CORE, QTCLIENT, MONO)
 set(COMMON_DEPS ${RC_WIN32})

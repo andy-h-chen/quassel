@@ -25,7 +25,11 @@
 #include "backlogrequester.h"
 #include "client.h"
 
+#ifdef Q_OS_BLACKBERRY
+#include <time.h>
+#else
 #include <ctime>
+#endif
 
 #include <QDebug>
 
