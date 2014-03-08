@@ -1,5 +1,57 @@
 #!/bin/bash
 
+INSTALL_PREFIX="bb10"
+
+if [ -z "$1" ]; then
+    echo "Usage: build-bb10 <path to local qmake>"
+    exit 0
+else
+  OUTPUT=$($1 -v)
+  QMAKEVERSION="QMake version"
+  if [ "${OUTPUT/$QMAKEVERSION}" = "$OUTPUT" ] ; then
+    exit 0
+  fi
+fi
+
+# Generate CMakeLists.txt for genversion.cpp
+BASEDIR=$(dirname $0)
+if [[ ! -e $BASEDIR/$INSTALL_PREFIX ]]; then
+  mkdir $INSTALL_PREFIX
+fi
+
+FILE="$BASEDIR/$INSTALL_PREFIX/CMakeLists.txt"
+
+cat <<EOM >$FILE
+cmake_minimum_required (VERSION 2.6)
+
+include(CheckFunctionExists)
+include(CheckIncludeFile)
+include(CheckCXXCompilerFlag)
+
+set(CMAKE_MODULE_PATH \${CMAKE_SOURCE_DIR}/../cmake/modules)
+include(QuasselMacros)
+
+find_package(Qt4 \${QT_MIN_VERSION} REQUIRED)
+setup_qt_variables()
+include_directories(\${QUASSEL_QT_INCLUDES})
+
+add_executable(genversion \${CMAKE_SOURCE_DIR}/../src/common/genversion.cpp)
+target_link_libraries(genversion \${QUASSEL_QT_LIBRARIES})
+set_target_properties(genversion PROPERTIES COMPILE_FLAGS "\${QUASSEL_QT_COMPILEFLAGS}")
+
+get_target_property(GENVERSION_EXECUTABLE genversion LOCATION)
+add_custom_target(genversion_run ALL \${GENVERSION_EXECUTABLE}
+                  \${CMAKE_SOURCE_DIR}/../ \${CMAKE_BINARY_DIR}/../src/version.gen)
+add_dependencies(genversion_run genversion)
+
+EOM
+
+pushd $INSTALL_PREFIX
+cmake -DQT_QMAKE_EXECUTABLE=$1 .
+make
+popd
+
+
 CPU="armv7le"
 CPUDIR="armle-v7"
 BUSUFFIX="armv7"
@@ -83,7 +135,7 @@ cmake \
     -DCMAKE_CXX_FLAGS="-Vgcc_nto${CPU}_cpp-ne -g -lang-c++ $EXTRA_FLAGS $COMP_PATHS" \
     -DCMAKE_INCLUDE_PATH="$QNX_INCLUDE" \
     -DCMAKE_LIBRARY_PATH="$QNX_LIB;$QNX_USR_LIB" \
-    -DCMAKE_INSTALL_PREFIX="bb10" \
+    -DCMAKE_INSTALL_PREFIX="$INSTALL_PREFIX" \
     -DCMAKE_AR="$QNX_HOST/usr/bin/nto$BUSUFFIX-ar" \
     -DCMAKE_RANLIB="$QNX_HOST/usr/bin/nto$BUSUFFIX-ranlib" \
     -DCMAKE_LD="$QNX_HOST/usr/bin/nto$BUSUFFIX-ld" \
