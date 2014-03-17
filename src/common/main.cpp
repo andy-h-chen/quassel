@@ -78,7 +78,6 @@ int main(int argc, char **argv)
     cliParser = new CliParser();
 #endif
     Quassel::setCliParser(cliParser);
-
     // Initialize CLI arguments
     // NOTE: We can't use tr() at this point, since app is not yet created
 
@@ -92,7 +91,6 @@ int main(int argc, char **argv)
     cliParser->addOption("configdir <path>", 'c', "Specify the directory holding configuration files, the SQlite database and the SSL certificate");
 #endif
     cliParser->addOption("datadir <path>", 0, "DEPRECATED - Use --configdir instead");
-
 #ifndef BUILD_CORE
     // put client-only arguments here
     cliParser->addOption("qss <file.qss>", 0, "Load a custom application stylesheet");
@@ -138,13 +136,13 @@ int main(int argc, char **argv)
 #  endif
 
 #ifndef HAVE_KDE
+    qDebug() << "xxxxx before cliParser->init() argc = " << argc;
     // the non-KDE version parses after app has been instantiated
-    if (!cliParser->init(app.arguments())) {
+    if (argc && !cliParser->init(app.arguments())) {
         cliParser->usage();
         return false;
     }
 #endif
-
     if (!app.init()) return EXIT_FAILURE;
     return app.exec();
 }

@@ -142,8 +142,12 @@ cmake \
     -DCMAKE_LINKER="$QNX_HOST/usr/bin/nto$BUSUFFIX-ld" \
     -DECLIPSE_CDT4_GENERATE_SOURCE_PROJECT=TRUE \
     -DWITH_KDE=OFF \
+    -DWITH_OXYGEN=OFF \
     -DWITH_SYSLOG=OFF \
     -DWITH_PHONON=OFF \
+    -DWANT_CORE=OFF \
+    -DWANT_CLIENT=OFF \
+    -DWANT_MONO=ON \
     -G"Eclipse CDT4 - Unix Makefiles" \
     $CMAKE_EXTRA_OPTIONS \
     $3 

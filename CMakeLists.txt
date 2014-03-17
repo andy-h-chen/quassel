@@ -44,8 +44,8 @@ set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake/modules)
 include(QuasselMacros)
 
 # Various options and variables that can be set on the command line
-option(WANT_CORE     "Build the core (server) binary"           ON)
-option(WANT_QTCLIENT "Build the Qt4 GUI client binary"          ON)
+option(WANT_CORE     "Build the core (server) binary"           OFF)
+option(WANT_QTCLIENT "Build the Qt4 GUI client binary"          OFF)
 option(WANT_MONO     "Build the monolithic (all-in-one) binary" ON)
 
 option(WITH_OPENSSL  "Enable OpenSSL support if present on the system"	ON)
@@ -66,6 +66,11 @@ set(WITH_OXYGEN AUTO CACHE STRING "Install Oxygen icons (default is \"AUTO\" to 
 option(WITH_QT5      "Enable (very) experimental support for Qt5"       OFF)
 
 option(STATIC        "Enable static building (might not be portable)" OFF)
+
+if(${CMAKE_SYSTEM_NAME} STREQUAL "QNX")
+    set(BLACKBERRY 1)
+    add_definitions(-DBLACKBERRY=1)
+endif()
 
 if(APPLE)
   option(DEPLOY        "Mac OS X only! Adds required libs to bundle resources and create a dmg. Note: requires Qt to be built with 10.4u SDK" OFF)
@@ -137,7 +142,7 @@ endif()
 if(CMAKE_COMPILER_IS_GNUCXX)
   # Let's just hope that all gccs support these options and skip the tests...
   # -fno-strict-aliasing is needed apparently for Qt < 4.6
-  if(${CMAKE_SYSTEM_NAME} STREQUAL "QNX")
+  if(BLACKBERRY)
     set(CMAKE_CXX_FLAGS                  "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wnon-virtual-dtor -fno-strict-aliasing")
   else()
     set(CMAKE_CXX_FLAGS                  "${CMAKE_CXX_FLAGS} -ansi -Wall -Wextra -Wnon-virtual-dtor -fno-strict-aliasing")
@@ -148,7 +153,7 @@ if(CMAKE_COMPILER_IS_GNUCXX)
   set(CMAKE_CXX_FLAGS_DEBUGFULL         "-g3 -ggdb -fno-inline")
   set(CMAKE_CXX_FLAGS_PROFILE           "-g3 -ggdb -fno-inline -ftest-coverage -fprofile-arcs")
 
-  if(${CMAKE_SYSTEM_NAME} STREQUAL "QNX")
+  if(BLACKBERRY)
     set(CMAKE_CXX_FLAGS                  "${CMAKE_CXX_FLAGS} -W -Wall -Wextra -Wnon-virtual-dtor -fno-strict-aliasing -Wundef -Wpointer-arith -Wformat-security -fno-check-new -fno-common")
   else()
     set(CMAKE_CXX_FLAGS                  "${CMAKE_CXX_FLAGS} -ansi -W -Wall -Wextra -Wnon-virtual-dtor -fno-strict-aliasing -Wundef -Wcast-align -Wpointer-arith -Wformat-security -fno-check-new -fno-common")
@@ -533,7 +538,7 @@ endif(NOT WIN32)
 setup_qt_variables()
 include_directories(${QUASSEL_QT_INCLUDES})
 
-if(NOT ${CMAKE_SYSTEM_NAME} STREQUAL "QNX")
+if(!BLACKBERRY)
     add_executable(genversion ${CMAKE_SOURCE_DIR}/src/common/genversion.cpp)
     target_link_libraries(genversion ${QUASSEL_QT_LIBRARIES})
     set_target_properties(genversion PROPERTIES COMPILE_FLAGS "${QUASSEL_QT_COMPILEFLAGS}")
