@@ -6,10 +6,21 @@ setup_qt_variables(Gui Network ${_modules})
 
 set(SOURCES
     bb10ui.cpp
-    uiapplication.cpp)
+    bb10uisettings.cpp
+    bb10uistyle.cpp
+    chatlinemodel.cpp
+    chatlinemodelitem.cpp
+    uiapplication.cpp
+    uimessageprocessor.cpp)
 set(MOC_HDRS
     bb10ui.h
-    uiapplication.h)
+    bb10uistyle.h
+    chatlinemodel.h
+    uiapplication.h
+    uimessageprocessor.h)
+set(HEADERS
+    bb10uisettings.h
+    chatlinemodelitem.h)
 
 include_directories(${CMAKE_SOURCE_DIR}/src/common
                     ${CMAKE_SOURCE_DIR}/src/client

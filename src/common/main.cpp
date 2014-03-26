@@ -138,10 +138,10 @@ int main(int argc, char **argv)
 #ifndef HAVE_KDE
     qDebug() << "xxxxx before cliParser->init() argc = " << argc;
     // the non-KDE version parses after app has been instantiated
-    if (argc && !cliParser->init(app.arguments())) {
+    /*if (argc && !cliParser->init(app.arguments())) {
         cliParser->usage();
         return false;
-    }
+    }*/
 #endif
     if (!app.init()) return EXIT_FAILURE;
     return app.exec();

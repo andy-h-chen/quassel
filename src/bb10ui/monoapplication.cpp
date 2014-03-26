@@ -10,16 +10,18 @@ MonolithicApplication::MonolithicApplication(int argc, char **argv)
     _internalInitDone(false)
 {
     _internal = new CoreApplicationInternal(); // needed for parser options
-    //disableCrashhandler();
-    //setRunMode(Quassel::Monolithic);
+    disableCrashhandler();
+    setRunMode(Quassel::Monolithic);
+    qDebug() << "xxxxx MonolithicApplication constructor";
 }
 
 
 bool MonolithicApplication::init()
 {
+    qDebug() << "xxxxx MonolithicApplication::init before Quassel::init";
     if (!Quassel::init()) // parse args
         return false;
-
+    qDebug() << "xxxxx MonolithicApplication::init";
     connect(Client::coreConnection(), SIGNAL(startInternalCore()), SLOT(startInternalCore()));
 
     // FIXME what's this for?
@@ -41,6 +43,7 @@ MonolithicApplication::~MonolithicApplication()
 
 void MonolithicApplication::startInternalCore()
 {
+    qDebug() << "xxxxx MonolithicApplication::startInternalCore";
     if (!_internalInitDone) {
         _internal->init();
         _internalInitDone = true;

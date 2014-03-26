@@ -10,7 +10,7 @@ class UiApplication : public bb::cascades::Application, public Quassel
     Q_OBJECT
 public:
     UiApplication(int argc, char **argv);
-    virtual ~UiApplication() {}
+    virtual ~UiApplication();
 
     bool init();
 };
