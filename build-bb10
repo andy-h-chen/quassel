@@ -148,6 +148,7 @@ cmake \
     -DWANT_CORE=OFF \
     -DWANT_CLIENT=OFF \
     -DWANT_MONO=ON \
+    -DEMBED_DATA=ON \
     -G"Eclipse CDT4 - Unix Makefiles" \
     $CMAKE_EXTRA_OPTIONS \
     $3 
