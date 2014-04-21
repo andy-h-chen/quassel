@@ -8,17 +8,19 @@ set(SOURCES
     bb10ui.cpp
     bb10uisettings.cpp
     bb10uistyle.cpp
-    channellistdatamodel.cpp
     chatlinemodel.cpp
     chatlinemodelitem.cpp
+    chatview.cpp
+    datamodeladapter.cpp
     simplesetuppage.cpp
     uiapplication.cpp
     uimessageprocessor.cpp)
 set(MOC_HDRS
     bb10ui.h
     bb10uistyle.h
-    channellistdatamodel.h
     chatlinemodel.h
+    chatview.h
+    datamodeladapter.h
     simplesetuppage.h
     uiapplication.h
     uimessageprocessor.h)

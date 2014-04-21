@@ -24,12 +24,13 @@
 
 #include "bb10uisettings.h"
 #include "buffermodel.h"
-#include "channellistdatamodel.h"
 #include "chatlinemodel.h"
+#include "chatview.h"
 #include "client.h"
 #include "clientbufferviewconfig.h"
 #include "clientbufferviewmanager.h"
 #include "clientidentity.h"
+#include "datamodeladapter.h"
 #include "simplesetuppage.h"
 #include "uimessageprocessor.h"
 
@@ -66,9 +67,10 @@ void Bb10Ui::init()
     Container* container = new Container();
     DockLayout* chatListLayout = new DockLayout();
     container->setLayout(chatListLayout);
-    m_chatListView = new ListView();
-    container->add(m_chatListView);
+    m_channelListView = new ListView();
+    container->add(m_channelListView);
     m_chatListPage->setContent(container);
+    connect(m_channelListView, SIGNAL(triggered(const QVariantList)), this, SLOT(onChannelListTriggered(const QVariantList)));
     m_navPane->push(m_chatListPage);
 
     connect(Client::instance(), SIGNAL(networkCreated(NetworkId)), SLOT(clientNetworkCreated(NetworkId)));
@@ -209,7 +211,7 @@ void Bb10Ui::bufferViewConfigAdded(int bufferViewConfigId)
     qDebug() << "xxxxx Bb10Ui::bufferViewConfigAdde id = " << bufferViewConfigId;
     ClientBufferViewConfig *config = Client::bufferViewManager()->clientBufferViewConfig(bufferViewConfigId);
     qDebug() << "xxxxx Bb10Ui::bufferViewConfigAdde config->networkId = " << config->networkId().toInt() << " bufferViewName = " << config->bufferViewName() << "bufferList = " << config->bufferList().size() << config->bufferList();
-    m_chatListView->setDataModel(new ChannelListDataModel());
+    m_channelListView->setDataModel(new DataModelAdapter(Client::bufferModel()));
 }
 
 void Bb10Ui::bufferViewConfigDeleted(int bufferViewConfigId)
@@ -224,4 +226,21 @@ void Bb10Ui::bufferViewManagerInitDone()
 AbstractMessageProcessor *Bb10Ui::createMessageProcessor(QObject *parent)
 {
     return new UiMessageProcessor(parent);
+}
+
+void Bb10Ui::onChannelListTriggered(const QVariantList index)
+{
+    qDebug() << "xxxxx Bb10Ui::onChannelListTriggered " << index;
+    QModelIndex modelIndex = static_cast<DataModelAdapter*>(m_channelListView->dataModel())->getQModelIndex(index);
+    BufferInfo bufferInfo = modelIndex.data(NetworkModel::BufferInfoRole).value<BufferInfo>();
+    BufferId id = bufferInfo.bufferId();
+    QString bufferName = bufferInfo.bufferName();
+    
+    qDebug() << "xxxxx Bb10Ui::onChannelListTriggered bufferInfo = " << bufferInfo;
+    ChatView *view = qobject_cast<ChatView *>(m_chatViews.value(id));
+    if (!view) {
+        view = new ChatView(id, bufferName);
+        m_chatViews[id] = view;
+    }
+    m_navPane->push(view->getPage());
 }

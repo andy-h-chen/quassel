@@ -10,6 +10,7 @@
 using namespace bb::cascades;
 
 class CertIdentity;
+class ChatView;
 class MessageModel;
 class SimpleSetupPage;
 class UiMessageProcessor;
@@ -54,6 +55,8 @@ private slots:
     void showCoreConfigWizard(const QVariantList &);
     void handleCoreConnectionError(const QString &error);
     void showCoreSetupSuccess();
+    // Channel list clicked
+    void onChannelListTriggered(const QVariantList);
 
 private:
     void showNewIdentityPage();
@@ -62,9 +65,10 @@ private:
     SimpleSetupPage* m_simpleSetupPage;
     NavigationPane *m_navPane;
     Page* m_chatListPage;
-    ListView* m_chatListView;
+    ListView* m_channelListView;
     CertIdentity *m_identity;
     NetworkInfo m_networkInfo;
+    QHash<BufferId, ChatView*> m_chatViews;
 };
 
 #endif
