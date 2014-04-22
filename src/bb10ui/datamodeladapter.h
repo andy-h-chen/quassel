@@ -18,7 +18,7 @@ public:
     virtual QVariant data(const QVariantList& indexPath);
     virtual QString itemType(const QVariantList& indexPath);
 
-    QModelIndex getQModelIndex(QVariantList list) const;
+    QModelIndex getQModelIndex(QVariantList list, int column = 0) const;
 private slots:
     void handleBufferModelDataChanged(const QModelIndex & topLeft, const QModelIndex & bottomRight);
     void handleBufferModelRowsRemoved(const QModelIndex & parent, int start, int end);

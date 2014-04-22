@@ -1,9 +1,12 @@
 #include "chatview.h"
 
 #include <bb/cascades/ActionItem>
+#include <bb/cascades/Button>
 #include <bb/cascades/Container>
 #include <bb/cascades/Divider>
 #include <bb/cascades/DockLayout>
+#include <bb/cascades/KeyEvent>
+#include <bb/cascades/KeyListener>
 #include <bb/cascades/Label>
 #include <bb/cascades/LayoutOrientation>
 #include <bb/cascades/ListView>
@@ -20,6 +23,7 @@
 #include <bb/cascades/controls/chromevisibility.h>
 
 #include "bb10ui.h"
+#include "chatlineprovider.h"
 #include "datamodeladapter.h"
 #include "messagefilter.h"
 
@@ -44,13 +48,31 @@ ChatView::ChatView(BufferId id, QString& name)
     m_page->setContent(mainContainer);
 
     m_chatListView = new ListView();
+    m_chatListView->setHorizontalAlignment(HorizontalAlignment::Fill);
     m_chatListView->setDataModel(dataModelAdapter);
+    m_chatListView->setListItemProvider(new ChatLineProvider());
     mainContainer->add(m_chatListView);
 
+    Container* inputContainer = Container::create();
+    inputContainer->setLayout(DockLayout::create());
+    inputContainer->setVerticalAlignment(VerticalAlignment::Bottom);
+    inputContainer->setHorizontalAlignment(HorizontalAlignment::Fill);
+    //inputContainer->setPreferredHeight(80.0f);
     m_input = new TextField();
-    m_input->setHorizontalAlignment(HorizontalAlignment::Fill);
-    m_input->setVerticalAlignment(VerticalAlignment::Bottom);
-    mainContainer->add(m_input);
+    m_input->setHorizontalAlignment(HorizontalAlignment::Left);
+    m_input->setVerticalAlignment(VerticalAlignment::Fill);
+    inputContainer->add(m_input);
+    m_sendButton = Button::create().text("Send");
+    m_sendButton->setHorizontalAlignment(HorizontalAlignment::Right);
+    m_sendButton->setVerticalAlignment(VerticalAlignment::Fill);
+    m_sendButton->setPreferredWidth(100.0f);
+    inputContainer->add(m_sendButton);
+    connect(m_sendButton, SIGNAL(clicked()), this, SLOT(sendMessage()));
+    mainContainer->add(inputContainer);
+
+    KeyListener* inputKeyListener = KeyListener::create()
+        .onKeyPressed(this, SLOT(onKeyPressHandler(KeyEvent*)));
+    m_input->addKeyListener(inputKeyListener);
 
     ActionItem* nickList = ActionItem::create()
     .title("Nick List");
@@ -58,7 +80,7 @@ ChatView::ChatView(BufferId id, QString& name)
     m_page->addAction(nickList, ActionBarPlacement::OnBar);
 
     ActionItem* backAction = ActionItem::create();
-    //connect(backAction, SIGNAL(triggered()), Bb10Ui::instance(), SLOT(saveIdentityAndServer()));
+    connect(backAction, SIGNAL(triggered()), Bb10Ui::instance(), SLOT(navPanePop()));
     m_page->setPaneProperties(NavigationPaneProperties::create().backButton(backAction));
 }
 
@@ -66,6 +88,19 @@ ChatView::~ChatView()
 {
     delete m_chatListView;
     delete m_input;
+    delete m_sendButton;
     delete m_page;
 }
 
+void ChatView::onKeyPressHandler(KeyEvent* event)
+{
+    qDebug() << "xxxxx ChatView::onKeyEventHandler key = " << event->key();
+}
+
+void ChatView::sendMessage()
+{
+    if (m_input->text().length()) {
+        Client::userInput(Client::networkModel()->bufferInfo(m_id), m_input->text());
+        m_input->setText("");
+    }
+}

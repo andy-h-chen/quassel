@@ -138,13 +138,13 @@ void DataModelAdapter::handleBufferModelRowsInserted(const QModelIndex & parent,
 }
 
 
-QModelIndex DataModelAdapter::getQModelIndex(QVariantList list) const
+QModelIndex DataModelAdapter::getQModelIndex(QVariantList list, int column) const
 {
     if (list.length() == 1)
-        return m_sortFilterProxyModel->index(list[0].toInt(), 0);
+        return m_sortFilterProxyModel->index(list[0].toInt(), column);
 
     if (list.length() == 2)
-        return m_sortFilterProxyModel->index(list[0].toInt(), 0).child(list[0].toInt(), 0);
+        return m_sortFilterProxyModel->index(list[0].toInt(), column).child(list[1].toInt(), column);
 
     return QModelIndex();
 }

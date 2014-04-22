@@ -230,17 +230,21 @@ AbstractMessageProcessor *Bb10Ui::createMessageProcessor(QObject *parent)
 
 void Bb10Ui::onChannelListTriggered(const QVariantList index)
 {
-    qDebug() << "xxxxx Bb10Ui::onChannelListTriggered " << index;
     QModelIndex modelIndex = static_cast<DataModelAdapter*>(m_channelListView->dataModel())->getQModelIndex(index);
     BufferInfo bufferInfo = modelIndex.data(NetworkModel::BufferInfoRole).value<BufferInfo>();
     BufferId id = bufferInfo.bufferId();
     QString bufferName = bufferInfo.bufferName();
     
-    qDebug() << "xxxxx Bb10Ui::onChannelListTriggered bufferInfo = " << bufferInfo;
+    qDebug() << "xxxxx Bb10Ui::onChannelListTriggered bufferInfo = " << bufferInfo << " index = " << index << " modelIndex = " << modelIndex;
     ChatView *view = qobject_cast<ChatView *>(m_chatViews.value(id));
     if (!view) {
         view = new ChatView(id, bufferName);
         m_chatViews[id] = view;
     }
     m_navPane->push(view->getPage());
+}
+
+void Bb10Ui::navPanePop()
+{
+    m_navPane->pop();
 }

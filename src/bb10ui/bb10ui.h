@@ -31,6 +31,7 @@ class Bb10Ui : public AbstractUi
     Q_OBJECT
 public:
     friend class SimpleSetupPage;
+    friend class ChatView;
     Bb10Ui(Application *app);
     virtual ~Bb10Ui();
 
@@ -49,6 +50,7 @@ protected slots:
     void bufferViewConfigAdded(int);
     void bufferViewConfigDeleted(int);
     void bufferViewManagerInitDone();
+    void navPanePop();
 
 private slots:
     void clientNetworkCreated(NetworkId);
