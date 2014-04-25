@@ -51,6 +51,40 @@ cmake -DQT_QMAKE_EXECUTABLE=$1 .
 make
 popd
 
+# Generate bar-descriptor.xml
+FILE="$BASEDIR/$INSTALL_PREFIX/bar-descriptor.xml"
+
+cat <<EOM >$FILE
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<qnx xmlns="http://www.qnx.com/schemas/application/1.0">
+    <id>org.quassel-irc</id>
+    <name>Quassel IRC For BB10</name>
+    <versionNumber>1.0.0</versionNumber>
+    <buildId>1</buildId>
+    <description>Quassel IRC</description>
+    <author>Andy H. Chen</author>
+    <initialWindow>
+        <autoOrients>true</autoOrients>
+        <systemChrome>none</systemChrome>
+        <transparent>false</transparent>
+    </initialWindow>
+    <category>core.games</category>
+    <configuration name="Device-Debug">
+       <platformArchitecture>armle-v7</platformArchitecture>
+       <asset path="bin/quassel" entry="true" type="Qnx/Elf">quassel</asset>
+    </configuration>
+    <icon>
+        <image>quassel.png</image>
+    </icon>
+    <asset path="share/icons/hicolor/114x114/apps/quassel.png">quassel.png</asset>
+    <asset path="share/apps">apps</asset>
+    <asset path="assets">assets</asset>   
+    <permission system="true">run_native</permission>
+    <permission>run_when_backgrounded</permission>
+    <env var="LD_LIBRARY_PATH" value="app/native/lib:/usr/lib/qt4/lib"/>
+</qnx>
+
+EOM
 
 CPU="armv7le"
 CPUDIR="armle-v7"
