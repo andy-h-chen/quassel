@@ -1,5 +1,5 @@
-#ifndef _CHATLINEPROVIDER_H_
-#define _CHATLINEPROVIDER_H_
+#ifndef _NICKLISTITEMPROVIDER_H_
+#define _NICKLISTITEMPROVIDER_H_
 
 #include <bb/cascades/ListItemProvider>
 
@@ -13,15 +13,13 @@ namespace bb
   }
 }
 
-class ChatLineProvider: public bb::cascades::ListItemProvider
+class NickListItemProvider: public bb::cascades::ListItemProvider
 {
 public:
-    ChatLineProvider();
+    NickListItemProvider();
 
     VisualNode * createItem(ListView* list, const QString &type);
     void updateItem(ListView* list, VisualNode *listItem, const QString &type, const QVariantList &indexPath, const QVariant &data);
-private:
-    bool m_scrollToNewLine;
 };
 
-#endif // ifndef _CHATLINEPROVIDER_H_
+#endif // ifndef _NICKLISTITEMPROVIDER_H_

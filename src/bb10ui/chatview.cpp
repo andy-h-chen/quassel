@@ -26,11 +26,15 @@
 #include "chatlineprovider.h"
 #include "datamodeladapter.h"
 #include "messagefilter.h"
+#include "nicklistitemprovider.h"
+#include "nickviewfilter.h"
 
 ChatView::ChatView(BufferId id, QString& name)
     : QObject(0)
     , m_id(id)
     , m_name(name)
+    , m_nickListPage(0)
+    , m_nickListView(0)
 {
     QList<BufferId> filterList;
     filterList.append(id);
@@ -76,7 +80,7 @@ ChatView::ChatView(BufferId id, QString& name)
 
     ActionItem* nickList = ActionItem::create()
     .title("Nick List");
-    //connect(saveAndConnect, SIGNAL(triggered()), Bb10Ui::instance(), SLOT(saveIdentityAndServer()));
+    connect(nickList, SIGNAL(triggered()), this, SLOT(showNicks()));
     m_page->addAction(nickList, ActionBarPlacement::OnBar);
 
     ActionItem* backAction = ActionItem::create();
@@ -104,3 +108,31 @@ void ChatView::sendMessage()
         m_input->setText("");
     }
 }
+
+void ChatView::showNicks()
+{
+    if (!m_nickListPage) {
+        m_nickListPage = Page::create();
+        TitleBar* titleBar = TitleBar::create().visibility(ChromeVisibility::Visible).title("Nick List for " + m_name);
+        m_nickListPage->setTitleBar(titleBar);
+        m_nickListView = new ListView();
+        m_nickListView->setHorizontalAlignment(HorizontalAlignment::Fill);
+        NickViewFilter* nickViewFilter = new NickViewFilter(m_id, Client::networkModel());
+        QVariantList startPoint;
+        for (int i=0; i<nickViewFilter->rowCount() && !startPoint.size(); i++) {  // loop thru networks
+            for (int j=0; j<nickViewFilter->rowCount(nickViewFilter->index(i, 0)); j++) { // loop thru channels
+                if (nickViewFilter->data(nickViewFilter->index(i, 0).child(j, 0), NetworkModel::BufferIdRole).value<BufferId>() == m_id) {
+                    startPoint.push_back(i);
+                    startPoint.push_back(j);
+                    qDebug() << "xxxxx ChatView::showNicks startPoint" << startPoint << " m_id = " << m_id;
+                }
+            }
+        }
+        nickViewFilter->sort(0);
+        m_nickListView->setDataModel(new DataModelAdapter(nickViewFilter, startPoint));
+        //m_nickListView->setListItemProvider(new NickListItemProvider());
+        m_nickListPage->setContent(m_nickListView);
+    }
+    Bb10Ui::instance()->navPanePush(m_nickListPage);
+}
+

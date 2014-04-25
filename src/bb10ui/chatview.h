@@ -33,6 +33,7 @@ public:
 private slots:
     void onKeyPressHandler(KeyEvent*);
     void sendMessage();
+    void showNicks();
 private:
     Page* m_page;
     TextField* m_input;
@@ -40,6 +41,9 @@ private:
     ListView* m_chatListView;
     BufferId m_id;
     QString m_name;
+
+    Page* m_nickListPage;
+    ListView* m_nickListView;
 };
 
 #endif

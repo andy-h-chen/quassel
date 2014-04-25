@@ -183,7 +183,6 @@ void Bb10Ui::saveIdentityAndServer()
         connect(Client::instance(), SIGNAL(identityCreated(IdentityId)), this, SLOT(identityReady(IdentityId)));
         Client::createIdentity(*m_identity);
     }
-    //m_identity->setRealName();
     m_navPane->pop();
 }
 
@@ -211,6 +210,7 @@ void Bb10Ui::bufferViewConfigAdded(int bufferViewConfigId)
     qDebug() << "xxxxx Bb10Ui::bufferViewConfigAdde id = " << bufferViewConfigId;
     ClientBufferViewConfig *config = Client::bufferViewManager()->clientBufferViewConfig(bufferViewConfigId);
     qDebug() << "xxxxx Bb10Ui::bufferViewConfigAdde config->networkId = " << config->networkId().toInt() << " bufferViewName = " << config->bufferViewName() << "bufferList = " << config->bufferList().size() << config->bufferList();
+    Client::bufferModel()->sort(0);
     m_channelListView->setDataModel(new DataModelAdapter(Client::bufferModel()));
 }
 
@@ -248,3 +248,9 @@ void Bb10Ui::navPanePop()
 {
     m_navPane->pop();
 }
+
+void Bb10Ui::navPanePush(Page* page)
+{
+    m_navPane->push(page);
+}
+

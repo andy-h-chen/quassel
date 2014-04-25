@@ -35,7 +35,7 @@ ChatLine::ChatLine(Container *parent) :
 
   // A Colored Container will be used to show if an item is highlighted
   mHighlighContainer = new Container();
-  //mHighlighContainer->setBackground(Color::fromARGB(0xff75b5d3));
+  mHighlighContainer->setBackground(Color::fromARGB(0xff808080));
   mHighlighContainer->setHorizontalAlignment(HorizontalAlignment::Center);
   mHighlighContainer->setOpacity(0.0);
   //mHighlighContainer->setPreferredWidth(760.0f);
@@ -73,25 +73,20 @@ void ChatLine::updateItem(const QString text)
 
 void ChatLine::select(bool select)
 {
-  // When an item is selected, show the colored highlight Container
-  if (select) {
-    mHighlighContainer->setOpacity(0.9f);
-  } else {
-    mHighlighContainer->setOpacity(0.0f);
-  }
+    Q_UNUSED(select);
 }
 
 void ChatLine::reset(bool selected, bool activated)
 {
-  Q_UNUSED(activated);
-
-  // Since items are recycled, the reset function is where we have
-  // to make sure that item state (defined by the arguments) is correct.
-  select(selected);
+    Q_UNUSED(activated);
+    Q_UNUSED(selected);
 }
 
 void ChatLine::activate(bool activate)
 {
-  // There is no special activate state; selected and activated look the same.
-  select(activate);
+  if (activate) {
+    mHighlighContainer->setOpacity(0.9f);
+  } else {
+    mHighlighContainer->setOpacity(0.0f);
+  }
 }

@@ -51,6 +51,7 @@ protected slots:
     void bufferViewConfigDeleted(int);
     void bufferViewManagerInitDone();
     void navPanePop();
+    void navPanePush(Page*);
 
 private slots:
     void clientNetworkCreated(NetworkId);

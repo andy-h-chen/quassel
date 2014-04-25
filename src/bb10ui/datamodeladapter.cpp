@@ -5,9 +5,10 @@
 #include "buffermodel.h"
 #include "client.h"
 
-DataModelAdapter::DataModelAdapter(QSortFilterProxyModel* sortFilterProxyModel, QObject *parent)
+DataModelAdapter::DataModelAdapter(QSortFilterProxyModel* sortFilterProxyModel, QVariantList startPoint, QObject *parent)
     : bb::cascades::DataModel(parent)
     , m_sortFilterProxyModel(sortFilterProxyModel)
+    , m_startPoint(startPoint)
 {
     connect(m_sortFilterProxyModel, SIGNAL(rowsRemoved (const QModelIndex&, int, int)), this, SLOT(handleBufferModelRowsRemoved(const QModelIndex &, int, int)));
     connect(m_sortFilterProxyModel, SIGNAL(rowsInserted (const QModelIndex&, int, int)), this, SLOT(handleBufferModelRowsInserted(const QModelIndex &, int, int)));
@@ -17,14 +18,15 @@ DataModelAdapter::DataModelAdapter(QSortFilterProxyModel* sortFilterProxyModel, 
 int DataModelAdapter::childCount(const QVariantList& indexPath)
 {
     const int level = indexPath.size();
-
+    QModelIndex startIndex = getStartIndex();
+    qDebug() << "xxxxx DataModelAdapter::childCount startIndex = " << startIndex << startIndex.isValid() << m_startPoint.size();
     if (level == 0) {
-        return m_sortFilterProxyModel->rowCount();
+        return startIndex.isValid() ? m_sortFilterProxyModel->rowCount(startIndex) : m_sortFilterProxyModel->rowCount();
     }
 
     if (level == 1) { // The number of child items for a header is requested
         const int header = indexPath[0].toInt();
-        return m_sortFilterProxyModel->rowCount(m_sortFilterProxyModel->index(header, 0));
+        return startIndex.isValid() ? m_sortFilterProxyModel->rowCount(startIndex.child(header, 0)) : m_sortFilterProxyModel->rowCount(m_sortFilterProxyModel->index(header, 0));
     }
 
     // The number of child items for 2nd level items is requested -> always 0
@@ -34,14 +36,14 @@ int DataModelAdapter::childCount(const QVariantList& indexPath)
 bool DataModelAdapter::hasChildren(const QVariantList& indexPath)
 {
     const int level = indexPath.size();
-
+    QModelIndex startIndex = getStartIndex();
     if (level == 0) {
-        return m_sortFilterProxyModel->hasChildren();
+        return startIndex.isValid() ? m_sortFilterProxyModel->hasChildren(startIndex) : m_sortFilterProxyModel->hasChildren();
     }
 
     if (level == 1) {
         const int header = indexPath[0].toInt();
-        return m_sortFilterProxyModel->hasChildren(m_sortFilterProxyModel->index(header, 0));
+        return startIndex.isValid() ? m_sortFilterProxyModel->hasChildren(startIndex.child(header, 0)) : m_sortFilterProxyModel->hasChildren(m_sortFilterProxyModel->index(header, 0));
     }
 
     return false;
@@ -57,19 +59,20 @@ bool DataModelAdapter::hasChildren(const QVariantList& indexPath)
 QVariant DataModelAdapter::data(const QVariantList& indexPath)
 {
     QVariant value;
+    QModelIndex startIndex = getStartIndex();
     if (indexPath.size() == 1) { // Header requested
-        if (indexPath[0].toInt() < m_sortFilterProxyModel->rowCount())
-            value = m_sortFilterProxyModel->data(m_sortFilterProxyModel->index(indexPath[0].toInt(), 0));
+        //if (indexPath[0].toInt() < m_sortFilterProxyModel->rowCount())
+        value = startIndex.isValid() ? m_sortFilterProxyModel->data(startIndex.child(indexPath[0].toInt(), 0)) : m_sortFilterProxyModel->data(m_sortFilterProxyModel->index(indexPath[0].toInt(), 0));
     }
 
     if (indexPath.size() == 2) { // 2nd-level item requested
         const int header = indexPath[0].toInt();
         const int childItem = indexPath[1].toInt();
-        if (header < m_sortFilterProxyModel->rowCount() && childItem < m_sortFilterProxyModel->rowCount(m_sortFilterProxyModel->index(header, 0)))
-            value = m_sortFilterProxyModel->data(m_sortFilterProxyModel->index(header, 0).child(childItem, 0));
+        //if (header < m_sortFilterProxyModel->rowCount() && childItem < m_sortFilterProxyModel->rowCount(m_sortFilterProxyModel->index(header, 0)))
+        value = startIndex.isValid() ? m_sortFilterProxyModel->data(startIndex.child(header, 0).child(childItem, 0)) : m_sortFilterProxyModel->data(m_sortFilterProxyModel->index(header, 0).child(childItem, 0));
     }
 
-    qDebug() << "xxxxx ChannelListDataModel::data Data for " << indexPath << " is " << value;
+    qDebug() << "xxxxx DataModelAdapter::data Data for " << indexPath << " is " << value;
 
     return value;
 }
@@ -140,11 +143,23 @@ void DataModelAdapter::handleBufferModelRowsInserted(const QModelIndex & parent,
 
 QModelIndex DataModelAdapter::getQModelIndex(QVariantList list, int column) const
 {
+    QModelIndex startIndex = getStartIndex();
     if (list.length() == 1)
-        return m_sortFilterProxyModel->index(list[0].toInt(), column);
+        return startIndex.isValid() ? startIndex.child(list[0].toInt(), column) : m_sortFilterProxyModel->index(list[0].toInt(), column);
 
     if (list.length() == 2)
-        return m_sortFilterProxyModel->index(list[0].toInt(), column).child(list[1].toInt(), column);
+        return startIndex.isValid() ? startIndex.child(list[0].toInt(), column).child(list[1].toInt(), column) : m_sortFilterProxyModel->index(list[0].toInt(), column).child(list[1].toInt(), column);
 
     return QModelIndex();
+}
+
+QModelIndex DataModelAdapter::getStartIndex() const
+{
+    QModelIndex startIndex = m_sortFilterProxyModel->index(-1, -1);
+    if (m_startPoint.size()) {
+        startIndex = m_sortFilterProxyModel->index(m_startPoint[0].toInt(), 0);
+        for (int i=1; i<m_startPoint.size(); i++)
+            startIndex = startIndex.child(m_startPoint[i].toInt(), 0);
+    }
+    return startIndex;
 }
