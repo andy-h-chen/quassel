@@ -1,6 +1,7 @@
 #include "simplesetuppage.h"
 
 #include <bb/cascades/ActionItem>
+#include <bb/cascades/CheckBox>
 #include <bb/cascades/Container>
 #include <bb/cascades/Divider>
 #include <bb/cascades/DockLayout>
@@ -95,6 +96,9 @@ SimpleSetupPage::SimpleSetupPage(QObject* parent)
     m_password->setBottomMargin(20.0);
     container->add(m_password);
 
+    m_useSSL = CheckBox::create().text("Use SSL");
+    container->add(m_useSSL);
+
     container->add(Label::create("Join Channels Automatically:"));
     m_autojoin = new TextArea();
     m_autojoin->setHintText("Auto join channels ...");
@@ -127,6 +131,7 @@ SimpleSetupPage::~SimpleSetupPage()
     delete m_serverAddr;
     delete m_port;
     delete m_password;
+    delete m_useSSL;
     delete m_autojoin;
 }
 
@@ -169,6 +174,7 @@ void SimpleSetupPage::displayNetworkInfo(const NetworkInfo &networkInfo)
     m_serverAddr->setText(server.host);
     m_port->setText(QString::number(server.port));
     m_password->setText(server.password);
+    m_useSSL->setChecked(server.useSsl);
 }
 
 void SimpleSetupPage::setDefaultChannels(const QStringList& channels)
@@ -184,6 +190,7 @@ void SimpleSetupPage::saveToNetworkInfo(NetworkInfo &networkInfo)
     svr.host = m_serverAddr->text();
     svr.port = m_port->text().toInt();
     svr.password = m_password->text();
+    svr.useSsl = m_useSSL->isChecked();
     list << svr;
     networkInfo.serverList = list;
 }

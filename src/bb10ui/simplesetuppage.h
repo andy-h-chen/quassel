@@ -12,6 +12,7 @@ namespace bb
 {
     namespace cascades
     {
+        class CheckBox;
         class Page;
         class TextArea;
         class TextField;
@@ -44,6 +45,7 @@ private:
     TextField* m_serverAddr;
     TextField* m_port;
     TextField* m_password;
+    CheckBox* m_useSSL;
     TextArea* m_autojoin;
 };
 
