@@ -34,7 +34,8 @@ void ChatLineProvider::updateItem(ListView* list, bb::cascades::VisualNode *list
 
     QModelIndex msgIndex = static_cast<DataModelAdapter*>(list->dataModel())->getQModelIndex(indexPath, 2);
 
-    Message message = msgIndex.data(MessageModel::MessageRole).value<Message>();
+    //Message message = msgIndex.data(MessageModel::MessageRole).value<Message>();
+    int flags = msgIndex.data(MessageModel::FlagsRole).value<int>();
 
     QModelIndex contentsModelIndex = static_cast<DataModelAdapter*>(list->dataModel())->getQModelIndex(indexPath, (int)ChatLineModel::ContentsColumn);
     QModelIndex senderModelIndex = static_cast<DataModelAdapter*>(list->dataModel())->getQModelIndex(indexPath, (int)ChatLineModel::SenderColumn);
@@ -44,10 +45,10 @@ void ChatLineProvider::updateItem(ListView* list, bb::cascades::VisualNode *list
     contents.replace("<", "&lt;").replace(">", "&gt;");
     sender.replace("<", "&lt;").replace(">", "&gt;");
     QString msg = "<html><span style='font-family:Courier New; color:orange'>" + sender + "</span> <span style='font-family:Courier New;'>" + contents + "</span></html>";
-    qDebug() << "xxxxx ChatLineProvider::updateItem indexPath = " << indexPath;
+    qDebug() << "xxxxx ChatLineProvider::updateItem flags&Message::Highlight = " << (flags & Message::Highlight);
     line->updateItem(msg);
-    if (message.flags() & Message::Highlight)
-        line->activate(true);
+    if (flags & Message::Highlight)
+        line->setHighlight(true);
     if (m_scrollToNewLine) {
         list->scrollToPosition(ScrollPosition::End, ScrollAnimation::Default);
         m_scrollToNewLine = false;
