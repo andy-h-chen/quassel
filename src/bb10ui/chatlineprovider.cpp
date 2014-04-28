@@ -45,7 +45,7 @@ void ChatLineProvider::updateItem(ListView* list, bb::cascades::VisualNode *list
     contents.replace("<", "&lt;").replace(">", "&gt;");
     sender.replace("<", "&lt;").replace(">", "&gt;");
     QString msg = "<html><span style='font-family:Courier New; color:orange'>" + sender + "</span> <span style='font-family:Courier New;'>" + contents + "</span></html>";
-    qDebug() << "xxxxx ChatLineProvider::updateItem flags&Message::Highlight = " << (flags & Message::Highlight);
+    //qDebug() << "xxxxx ChatLineProvider::updateItem flags&Message::Highlight = " << (flags & Message::Highlight);
     line->updateItem(msg);
     if (flags & Message::Highlight)
         line->setHighlight(true);

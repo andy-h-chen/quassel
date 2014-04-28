@@ -23,7 +23,9 @@
 #include <QModelIndex>
 
 #include "bb10uisettings.h"
+#include "bb10uistyle.h"
 #include "buffermodel.h"
+#include "channellistviewfilter.h"
 #include "chatlinemodel.h"
 #include "chatview.h"
 #include "client.h"
@@ -35,6 +37,7 @@
 #include "uimessageprocessor.h"
 
 Bb10Ui *Bb10Ui::s_instance = 0;
+Bb10UiStyle* Bb10Ui::s_uiStyle = 0;
 
 Bb10Ui::Bb10Ui(Application *app)
     : m_simpleSetupPage(0)
@@ -63,6 +66,8 @@ Bb10Ui::~Bb10Ui()
 
 void Bb10Ui::init()
 {
+    qDebug() << "xxxxx Bb10Ui::init";
+    s_uiStyle = new Bb10UiStyle(this);
     m_chatListPage = Page::create();
     Container* container = new Container();
     DockLayout* chatListLayout = new DockLayout();
@@ -93,6 +98,7 @@ void Bb10Ui::clientNetworkCreated(NetworkId id)
 
 void Bb10Ui::showCoreConfigWizard(const QVariantList &backend)
 {
+    Q_UNUSED(backend);
     qDebug() << "xxxxx showCoreConfigWizard";
 }
 
@@ -211,7 +217,10 @@ void Bb10Ui::bufferViewConfigAdded(int bufferViewConfigId)
     ClientBufferViewConfig *config = Client::bufferViewManager()->clientBufferViewConfig(bufferViewConfigId);
     qDebug() << "xxxxx Bb10Ui::bufferViewConfigAdde config->networkId = " << config->networkId().toInt() << " bufferViewName = " << config->bufferViewName() << "bufferList = " << config->bufferList().size() << config->bufferList();
     Client::bufferModel()->sort(0);
-    m_channelListView->setDataModel(new DataModelAdapter(Client::bufferModel()));
+    //m_channelListView->setDataModel(new DataModelAdapter(Client::bufferModel()));
+    DataModelAdapter* model = new DataModelAdapter(new ChannelListViewFilter(Client::bufferModel(), config));
+    connect(config, SIGNAL(configChanged), model, SIGNAL(itemsChanged(bb::cascades::DataModelChangeType::AddRemove)));
+    m_channelListView->setDataModel(model);
 }
 
 void Bb10Ui::bufferViewConfigDeleted(int bufferViewConfigId)

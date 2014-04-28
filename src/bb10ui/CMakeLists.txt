@@ -8,6 +8,7 @@ set(SOURCES
     bb10ui.cpp
     bb10uisettings.cpp
     bb10uistyle.cpp
+    channellistviewfilter.cpp
     chatline.cpp
     chatlinemodel.cpp
     chatlinemodelitem.cpp
@@ -22,6 +23,7 @@ set(SOURCES
 set(MOC_HDRS
     bb10ui.h
     bb10uistyle.h
+    channellistviewfilter.h
     chatline.h
     chatlinemodel.h
     chatview.h

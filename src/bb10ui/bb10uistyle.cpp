@@ -21,18 +21,24 @@
 //#include "chatviewsettings.h"
 #include "bb10uistyle.h"
 
+#include <bb/cascades/Application>
 #include <QFile>
 #include <QTextStream>
 
-Bb10UiStyle::Bb10UiStyle(QObject *parent) : UiStyle(parent)
+#include "qssparser.h"
+
+Bb10UiStyle::Bb10UiStyle(QObject *parent) : QObject(parent)
 {
     //ChatViewSettings s;
     //s.notify("TimestampFormat", this, SLOT(updateTimestampFormatString()));
     //updateTimestampFormatString();
+    loadStyleSheet();
 }
 
 
-Bb10UiStyle::~Bb10UiStyle() {}
+Bb10UiStyle::~Bb10UiStyle() {
+    qDeleteAll(_metricsCache);
+}
 
 void Bb10UiStyle::updateTimestampFormatString()
 {
@@ -45,7 +51,7 @@ void Bb10UiStyle::generateSettingsQss() const
 {
     QFile settingsQss(Quassel::configDirPath() + "settings.qss");
     if (!settingsQss.open(QFile::WriteOnly|QFile::Truncate)) {
-        qWarning() << "Could not open" << settingsQss.fileName() << "for writing!";
+        qDebug() << "xxxxx Could not open" << settingsQss.fileName() << "for writing!";
         return;
     }
     QTextStream out(&settingsQss);
@@ -173,4 +179,134 @@ QString Bb10UiStyle::senderQss(int i, UiSettings &settings) const
 QString Bb10UiStyle::chatListItemQss(const QString &state, const QString &key, UiSettings &settings) const
 {
     return QString("ChatListItem[state=\"%1\"] { foreground: %2; }\n").arg(state, color(key, settings));
+}
+
+QVariant Bb10UiStyle::channelListViewItemData(const QModelIndex &index, int role) const
+{
+    BufferInfo::Type type = (BufferInfo::Type)index.data(NetworkModel::BufferTypeRole).toInt();
+    bool isActive = index.data(NetworkModel::ItemActiveRole).toBool();
+
+    if (role == Qt::DecorationRole) {
+        return QVariant();
+/*
+        switch (type) {
+        case BufferInfo::ChannelBuffer:
+            if (isActive)
+                return _channelJoinedIcon;
+            else
+                return _channelPartedIcon;
+        case BufferInfo::QueryBuffer:
+            if (!isActive)
+                return _userOfflineIcon;
+            if (index.data(NetworkModel::UserAwayRole).toBool())
+                return _userAwayIcon;
+            else
+                return _userOnlineIcon;
+        default:
+            return QVariant();
+        } */
+    }
+
+    quint32 fmtType = BufferViewItem;
+    switch (type) {
+    case BufferInfo::StatusBuffer:
+        fmtType |= NetworkItem;
+        break;
+    case BufferInfo::ChannelBuffer:
+        fmtType |= ChannelBufferItem;
+        break;
+    case BufferInfo::QueryBuffer:
+        fmtType |= QueryBufferItem;
+        break;
+    default:
+        return QVariant();
+    }
+
+    QTextCharFormat fmt = _listItemFormats.value(BufferViewItem);
+    fmt.merge(_listItemFormats.value(fmtType));
+
+    BufferInfo::ActivityLevel activity = (BufferInfo::ActivityLevel)index.data(NetworkModel::BufferActivityRole).toInt();
+    if (activity & BufferInfo::Highlight) {
+        fmt.merge(_listItemFormats.value(BufferViewItem | HighlightedBuffer));
+        fmt.merge(_listItemFormats.value(fmtType | HighlightedBuffer));
+    }
+    else if (activity & BufferInfo::NewMessage) {
+        fmt.merge(_listItemFormats.value(BufferViewItem | UnreadBuffer));
+        fmt.merge(_listItemFormats.value(fmtType | UnreadBuffer));
+    }
+    else if (activity & BufferInfo::OtherActivity) {
+        fmt.merge(_listItemFormats.value(BufferViewItem | ActiveBuffer));
+        fmt.merge(_listItemFormats.value(fmtType | ActiveBuffer));
+    }
+    else if (!isActive) {
+        fmt.merge(_listItemFormats.value(BufferViewItem | InactiveBuffer));
+        fmt.merge(_listItemFormats.value(fmtType | InactiveBuffer));
+    }
+    else if (index.data(NetworkModel::UserAwayRole).toBool()) {
+        fmt.merge(_listItemFormats.value(BufferViewItem | UserAway));
+        fmt.merge(_listItemFormats.value(fmtType | UserAway));
+    }
+    qDebug() << "xxxxx Bb10UiStyle::channelListViewItemData fmt.font = " << fmt.font().toString();
+    qDebug() << "xxxxx Bb10UiStyle::channelListViewItemData fmt.foreground = " << fmt.property(QTextFormat::ForegroundBrush).value<QBrush>().color().rgb();
+    qDebug() << "xxxxx Bb10UiStyle::channelListViewItemData fmt.background = " << fmt.property(QTextFormat::BackgroundBrush).value<QBrush>().color().rgb();
+
+    return QVariant();
+}
+
+void Bb10UiStyle::loadStyleSheet()
+{
+    qDeleteAll(_metricsCache);
+    _metricsCache.clear();
+    _formatCache.clear();
+    _formats.clear();
+
+    UiStyleSettings s;
+
+    QString styleSheet;
+    styleSheet += loadStyleSheet("file:///" + Quassel::findDataFilePath("stylesheets/default.qss"));
+    styleSheet += loadStyleSheet("file:///" + Quassel::configDirPath() + "settings.qss");
+    if (s.value("UseCustomStyleSheet", false).toBool())
+        styleSheet += loadStyleSheet("file:///" + s.value("CustomStyleSheetPath").toString(), true);
+    styleSheet += loadStyleSheet("file:///" + Quassel::optionValue("qss"), true);
+
+    if (!styleSheet.isEmpty()) {
+        QssParser parser;
+        parser.processStyleSheet(styleSheet);
+        QApplication::setPalette(parser.palette());
+
+        _uiStylePalette = parser.uiStylePalette();
+        _formats = parser.formats();
+        _listItemFormats = parser.listItemFormats();
+
+        styleSheet = styleSheet.trimmed();
+        if (!styleSheet.isEmpty())
+            qApp->setStyleSheet(styleSheet);  // pass the remaining sections to the application
+    }
+
+    emit changed();
+}
+
+
+QString Bb10UiStyle::loadStyleSheet(const QString &styleSheet, bool shouldExist)
+{
+    QString ss = styleSheet;
+    if (ss.startsWith("file:///")) {
+        ss.remove(0, 8);
+        if (ss.isEmpty())
+            return QString();
+
+        QFile file(ss);
+        if (file.open(QFile::ReadOnly)) {
+            QTextStream stream(&file);
+            ss = stream.readAll();
+            file.close();
+        }
+        else {
+            if (shouldExist)
+                qWarning() << "xxxxx Could not open stylesheet file:" << file.fileName();
+            return QString();
+        }
+    }
+    qDebug() << "xxxxx Bb10UiStyle::loadStyleSheet " << ss;
+    return ss;
 }

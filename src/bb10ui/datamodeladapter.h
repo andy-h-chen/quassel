@@ -10,7 +10,7 @@ class DataModelAdapter : public bb::cascades::DataModel
 {
     Q_OBJECT
 public:
-    DataModelAdapter(QSortFilterProxyModel* sortFilterProxyModel, QVariantList startPoint = QVariantList(), QObject *parent = 0);
+    DataModelAdapter(QAbstractItemModel* model, QVariantList startPoint = QVariantList(), QObject *parent = 0);
 
     // Required interface implementation
     virtual int childCount(const QVariantList& indexPath);
@@ -23,9 +23,10 @@ private slots:
     void handleBufferModelDataChanged(const QModelIndex & topLeft, const QModelIndex & bottomRight);
     void handleBufferModelRowsRemoved(const QModelIndex & parent, int start, int end);
     void handleBufferModelRowsInserted(const QModelIndex & parent, int start, int end);
+    void handleLayoutChanged();
 private:
     QModelIndex getStartIndex() const;
-    QSortFilterProxyModel* m_sortFilterProxyModel;
+    QAbstractItemModel* m_model;
     QVariantList m_startPoint;
 };
 

@@ -9,6 +9,7 @@
 
 using namespace bb::cascades;
 
+class Bb10UiStyle;
 class CertIdentity;
 class ChatView;
 class MessageModel;
@@ -40,6 +41,8 @@ public:
 
     inline static Bb10Ui *instance() { return s_instance; }
     void init();
+
+    inline static Bb10UiStyle *uiStyle();
     //Page *createChannelList();
 protected slots:
     void connectedToCore();
@@ -65,6 +68,7 @@ private:
     void showNewIdentityPage();
 
     static Bb10Ui* s_instance;
+    static Bb10UiStyle* s_uiStyle;
     SimpleSetupPage* m_simpleSetupPage;
     NavigationPane *m_navPane;
     Page* m_chatListPage;
@@ -73,5 +77,7 @@ private:
     NetworkInfo m_networkInfo;
     QHash<BufferId, ChatView*> m_chatViews;
 };
+
+Bb10UiStyle* Bb10Ui::uiStyle() { return s_uiStyle; }
 
 #endif
