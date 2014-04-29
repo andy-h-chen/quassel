@@ -20,11 +20,17 @@
 #include <bb/cascades/resources/titlebar.h>
 #include <bb/cascades/controls/chromevisibility.h>
 
+#include <bb/platform/Notification>
+#include <bb/platform/NotificationDialog>
+#include <bb/platform/NotificationError>
+#include <bb/platform/NotificationResult>
+
 #include <QModelIndex>
 
 #include "bb10uisettings.h"
 #include "bb10uistyle.h"
 #include "buffermodel.h"
+#include "bufferviewoverlay.h"
 #include "channellistviewfilter.h"
 #include "chatlinemodel.h"
 #include "chatview.h"
@@ -32,12 +38,16 @@
 #include "clientbufferviewconfig.h"
 #include "clientbufferviewmanager.h"
 #include "clientidentity.h"
+#include "clientignorelistmanager.h"
 #include "datamodeladapter.h"
 #include "simplesetuppage.h"
 #include "uimessageprocessor.h"
 
 Bb10Ui *Bb10Ui::s_instance = 0;
 Bb10UiStyle* Bb10Ui::s_uiStyle = 0;
+
+using namespace bb::platform;
+using namespace bb::system;
 
 Bb10Ui::Bb10Ui(Application *app)
     : m_simpleSetupPage(0)
@@ -82,6 +92,7 @@ void Bb10Ui::init()
     connect(Client::coreConnection(), SIGNAL(startCoreSetup(QVariantList)), SLOT(showCoreConfigWizard(QVariantList)));
     connect(Client::coreConnection(), SIGNAL(connectionErrorPopup(QString)), SLOT(handleCoreConnectionError(QString)));
     connect(Client::coreConnection(), SIGNAL(coreSetupSuccess), SLOT(showCoreSetupSuccess));
+    connect(Client::messageModel(), SIGNAL(rowsInserted(const QModelIndex &, int, int)), SLOT(messagesInserted(const QModelIndex &, int, int)));
     CoreConnection *conn = Client::coreConnection();
     if (!conn->connectToCore()) {
         qDebug() << "xxxxx !conn->connectToCore";
@@ -89,6 +100,12 @@ void Bb10Ui::init()
         //showCoreConnectionDlg();
     } else
         qDebug() << "xxxxx conn->connectToCore success!";
+
+    m_invokeRequest.setAction("bb.action.OPEN");
+    m_invokeRequest.setTargetTypes(InvokeTarget::Application);
+    m_invokeRequest.setMimeType("text/plain");
+    m_invokeRequest.setTarget("irc");
+    
 }
 
 void Bb10Ui::clientNetworkCreated(NetworkId id)
@@ -261,5 +278,76 @@ void Bb10Ui::navPanePop()
 void Bb10Ui::navPanePush(Page* page)
 {
     m_navPane->push(page);
+}
+
+void Bb10Ui::messagesInserted(const QModelIndex &parent, int start, int end)
+{
+    Q_UNUSED(parent);
+
+    bool hasFocus = QApplication::activeWindow() != 0;
+    for (int i = start; i <= end; i++) {
+        QModelIndex idx = Client::messageModel()->index(i, ChatLineModel::ContentsColumn);
+        if (!idx.isValid()) {
+            qDebug() << "Bb10Ui::messagesInserted(): Invalid model index!";
+            continue;
+        }
+        Message::Flags flags = (Message::Flags)idx.data(ChatLineModel::FlagsRole).toInt();
+        if (flags.testFlag(Message::Backlog) || flags.testFlag(Message::Self))
+            continue;
+
+        BufferId bufId = idx.data(ChatLineModel::BufferIdRole).value<BufferId>();
+        BufferInfo::Type bufType = Client::networkModel()->bufferType(bufId);
+
+        // check if bufferId belongs to the shown chatlists
+        if (!m_chatViews.contains(bufId)) {
+            qDebug() << "xxxxx Bb10Ui::messagesInserted line 297";
+            continue;
+        }
+
+        // check if it's the buffer currently displayed
+        if (hasFocus && bufId == Client::bufferModel()->currentBuffer()) {
+            qDebug() << "xxxxx Bb10Ui::messagesInserted line 303";
+            continue;
+        }
+
+        // only show notifications for higlights or queries
+        if (bufType != BufferInfo::QueryBuffer && !(flags & Message::Highlight)) {
+            qDebug() << "xxxxx Bb10Ui::messagesInserted line 309";
+            continue;
+        }
+
+        // and of course: don't notify for ignored messages
+        if (Client::ignoreListManager() && Client::ignoreListManager()->match(idx.data(MessageModel::MessageRole).value<Message>(), Client::networkModel()->networkName(bufId))) {
+            qDebug() << "xxxxx Bb10Ui::messagesInserted line 315";
+            continue;
+        }
+
+        // seems like we have a legit notification candidate!
+        QModelIndex senderIdx = Client::messageModel()->index(i, ChatLineModel::SenderColumn);
+        QString sender = senderIdx.data(ChatLineModel::EditRole).toString();
+        QString contents = idx.data(ChatLineModel::DisplayRole).toString();
+        /*
+        AbstractNotificationBackend::NotificationType type;
+
+        if (bufType == BufferInfo::QueryBuffer && !hasFocus)
+            type = AbstractNotificationBackend::PrivMsg;
+        else if (bufType == BufferInfo::QueryBuffer && hasFocus)
+            type = AbstractNotificationBackend::PrivMsgFocused;
+        else if (flags & Message::Highlight && !hasFocus)
+            type = AbstractNotificationBackend::Highlight;
+        else
+            type = AbstractNotificationBackend::HighlightFocused;
+        */
+        //QtUi::instance()->invokeNotification(bufId, type, sender, contents);
+
+        QString bufferName = (bufType == BufferInfo::QueryBuffer) ? "Private msg" : Client::networkModel()->bufferName(bufId);
+        Notification* pNotification = new Notification();
+
+        pNotification->setTitle("Quassel IRC for BB10");
+        pNotification->setBody("[" + bufferName + "] " + sender + " says: " + contents);
+        pNotification->setInvokeRequest(m_invokeRequest);
+        // FIXME: call setData to add bufferId, so that we can open the page.
+        pNotification->notify();
+    }
 }
 

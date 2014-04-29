@@ -68,6 +68,15 @@ cat <<EOM >$FILE
         <systemChrome>none</systemChrome>
         <transparent>false</transparent>
     </initialWindow>
+    <invoke-target id="irc">
+        <name>Quassel IRC for BB10</name>
+        <icon><image>quassel.png</image></icon>
+        <type>APPLICATION</type>
+        <filter>
+            <action>bb.action.OPEN</action>
+            <mime-type>text/plain</mime-type>
+        </filter>
+    </invoke-target>
     <category>core.games</category>
     <configuration name="Device-Debug">
        <platformArchitecture>armle-v7</platformArchitecture>
@@ -81,6 +90,8 @@ cat <<EOM >$FILE
     <asset path="assets">assets</asset>   
     <permission system="true">run_native</permission>
     <permission>run_when_backgrounded</permission>
+    <permission>access_notify_settings_control</permission>
+    <permission>post_notification</permission>
     <env var="LD_LIBRARY_PATH" value="app/native/lib:/usr/lib/qt4/lib"/>
 </qnx>
 

@@ -2,6 +2,7 @@
 #define BB10UI_H
 
 #include <bb/cascades/Application>
+#include <bb/system/InvokeRequest>
 
 #include "abstractui.h"
 #include "network.h"
@@ -63,6 +64,7 @@ private slots:
     void showCoreSetupSuccess();
     // Channel list clicked
     void onChannelListTriggered(const QVariantList);
+    void messagesInserted(const QModelIndex &parent, int start, int end);
 
 private:
     void showNewIdentityPage();
@@ -76,6 +78,7 @@ private:
     CertIdentity *m_identity;
     NetworkInfo m_networkInfo;
     QHash<BufferId, ChatView*> m_chatViews;
+    bb::system::InvokeRequest m_invokeRequest;
 };
 
 Bb10UiStyle* Bb10Ui::uiStyle() { return s_uiStyle; }
