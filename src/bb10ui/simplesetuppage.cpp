@@ -15,6 +15,7 @@
 #include <bb/cascades/SystemDefaults>
 #include <bb/cascades/TextArea>
 #include <bb/cascades/TextField>
+#include <bb/cascades/TextFieldInputMode>
 
 #include <bb/cascades/resources/titlebar.h>
 #include <bb/cascades/controls/chromevisibility.h>
@@ -79,6 +80,7 @@ SimpleSetupPage::SimpleSetupPage(QObject* parent)
     m_serverAddr = new TextField();
     m_serverAddr->setHintText("Enter your server address here...");
     m_serverAddr->setHorizontalAlignment(HorizontalAlignment::Center);
+    m_serverAddr->setInputMode(TextFieldInputMode::Url);
     m_serverAddr->setBottomMargin(20.0);
     container->add(m_serverAddr);
 
@@ -86,6 +88,7 @@ SimpleSetupPage::SimpleSetupPage(QObject* parent)
     m_port = new TextField();
     m_port->setHintText("Enter your server port here...");
     m_port->setHorizontalAlignment(HorizontalAlignment::Center);
+    m_port->setInputMode(TextFieldInputMode::NumbersAndPunctuation);
     m_port->setBottomMargin(20.0);
     container->add(m_port);
 
@@ -93,6 +96,7 @@ SimpleSetupPage::SimpleSetupPage(QObject* parent)
     m_password = new TextField();
     m_password->setHintText("Enter your server password here...");
     m_password->setHorizontalAlignment(HorizontalAlignment::Center);
+    m_password->setInputMode(TextFieldInputMode::Password);
     m_password->setBottomMargin(20.0);
     container->add(m_password);
 

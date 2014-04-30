@@ -53,6 +53,7 @@ Bb10Ui::Bb10Ui(Application *app)
     : m_simpleSetupPage(0)
     , m_navPane(0)
     , m_identity(0)
+    , m_appState(FullScreen)
 {
     if (s_instance != 0) {
         qWarning() << "Bb10Ui has been instantiated again!";
@@ -86,7 +87,19 @@ void Bb10Ui::init()
     container->add(m_channelListView);
     m_chatListPage->setContent(container);
     connect(m_channelListView, SIGNAL(triggered(const QVariantList)), this, SLOT(onChannelListTriggered(const QVariantList)));
+    ActionItem* editIdentity = ActionItem::create()
+    .title("Edit Identity");
+    connect(editIdentity, SIGNAL(triggered()), Bb10Ui::instance(), SLOT(showNewIdentityPage()));
+    m_chatListPage->addAction(editIdentity, ActionBarPlacement::OnBar);
+
+    m_connect = ActionItem::create().title("Connect");
+    m_chatListPage->addAction(m_connect, ActionBarPlacement::OnBar);
+    connect(m_connect, SIGNAL(triggered()), this, SLOT(toggleConnection()));
+
     m_navPane->push(m_chatListPage);
+
+    connect(Application::instance(), SIGNAL(fullscreen()), this, SLOT(onFullscreen));
+    connect(Application::instance(), SIGNAL(thumbnail()), this, SLOT(onThumbnail));
 
     connect(Client::instance(), SIGNAL(networkCreated(NetworkId)), SLOT(clientNetworkCreated(NetworkId)));
     connect(Client::coreConnection(), SIGNAL(startCoreSetup(QVariantList)), SLOT(showCoreConfigWizard(QVariantList)));
@@ -150,13 +163,12 @@ void Bb10Ui::setConnectedState()
     if (Client::networkIds().isEmpty()) {
         showNewIdentityPage();
     } else {
-        // Monolithic always preselects last used buffer - Client only if the connection died
-        if (Client::coreConnection()->wasReconnect() || Quassel::runMode() == Quassel::Monolithic) {
-            Bb10UiSettings s;
-            BufferId lastUsedBufferId(s.value("LastUsedBufferId").toInt());
-            if (lastUsedBufferId.isValid())
-                Client::bufferModel()->switchToBuffer(lastUsedBufferId);
-        }
+        NetworkId id = Client::networkIds()[0];
+        const Network* net = Client::network(id);
+        m_networkInfo = net->networkInfo();
+        connect(net, SIGNAL(connectedSet(bool)), this, SLOT(updateConnectionState(bool)));
+        if (net->connectionState() != Network::Disconnected)
+            m_connect->setEnabled(false);
     }
 }
 
@@ -236,7 +248,7 @@ void Bb10Ui::bufferViewConfigAdded(int bufferViewConfigId)
     Client::bufferModel()->sort(0);
     //m_channelListView->setDataModel(new DataModelAdapter(Client::bufferModel()));
     DataModelAdapter* model = new DataModelAdapter(new ChannelListViewFilter(Client::bufferModel(), config));
-    connect(config, SIGNAL(configChanged), model, SIGNAL(itemsChanged(bb::cascades::DataModelChangeType::AddRemove)));
+    connect(config, SIGNAL(configChanged()), model, SIGNAL(handleLayoutChanged()));
     m_channelListView->setDataModel(model);
 }
 
@@ -283,8 +295,8 @@ void Bb10Ui::navPanePush(Page* page)
 void Bb10Ui::messagesInserted(const QModelIndex &parent, int start, int end)
 {
     Q_UNUSED(parent);
-
-    bool hasFocus = QApplication::activeWindow() != 0;
+    bool hasFocus = Application::instance()->isFullscreen();
+    qDebug() << "xxxxx Bb10Ui::messagesInserted m_appState = " << m_appState << " Application::instance()->isFullScreen() = " << Application::instance()->isFullscreen();
     for (int i = start; i <= end; i++) {
         QModelIndex idx = Client::messageModel()->index(i, ChatLineModel::ContentsColumn);
         if (!idx.isValid()) {
@@ -339,15 +351,53 @@ void Bb10Ui::messagesInserted(const QModelIndex &parent, int start, int end)
             type = AbstractNotificationBackend::HighlightFocused;
         */
         //QtUi::instance()->invokeNotification(bufId, type, sender, contents);
+        if (hasFocus) {
+            // process in-app notification
+        } else {
+            QString bufferName = (bufType == BufferInfo::QueryBuffer) ? "Private msg" : Client::networkModel()->bufferName(bufId);
+            Notification* pNotification = new Notification();
 
-        QString bufferName = (bufType == BufferInfo::QueryBuffer) ? "Private msg" : Client::networkModel()->bufferName(bufId);
-        Notification* pNotification = new Notification();
-
-        pNotification->setTitle("Quassel IRC for BB10");
-        pNotification->setBody("[" + bufferName + "] " + sender + " says: " + contents);
-        pNotification->setInvokeRequest(m_invokeRequest);
-        // FIXME: call setData to add bufferId, so that we can open the page.
-        pNotification->notify();
+            pNotification->setTitle("Quassel IRC for BB10");
+            pNotification->setBody("[" + bufferName + "] " + sender + " says: " + contents);
+            pNotification->setInvokeRequest(m_invokeRequest);
+            // FIXME: call setData to add bufferId, so that we can open the page.
+            pNotification->notify();
+        }
     }
 }
 
+void Bb10Ui::onFullscreen()
+{
+    qDebug() << "xxxxx Bb10Ui::onFullscreen";
+    m_appState = FullScreen;
+}
+
+void Bb10Ui::onThumbnail()
+{
+    qDebug() << "xxxxx Bb10Ui::onThumbnail";
+    m_appState = Thumbnail;
+}
+
+void Bb10Ui::toggleConnection()
+{
+    const Network *net = Client::network(m_networkInfo.networkId);
+    if (net && net->isConnected() && m_connect->title() == "Disconnect") {
+        m_connect->setEnabled(false);
+        net->requestDisconnect();
+        return;
+    }
+    if (net && !net->isConnected() && m_connect->title() == "Connect") {
+        m_connect->setEnabled(false);
+        net->requestConnect();
+    }
+        
+}
+
+void Bb10Ui::updateConnectionState(bool connected)
+{
+    if (connected)
+        m_connect->setTitle("Disconnect");
+    else
+        m_connect->setTitle("Connect");
+    m_connect->setEnabled(true);
+}

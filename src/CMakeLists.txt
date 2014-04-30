@@ -85,7 +85,7 @@ if(WANT_MONO)
                                 OUTPUT_NAME ../quassel)
   if(BLACKBERRY)
     target_link_libraries(quassel mod_bb10ui mod_uisupport mod_client mod_core mod_common ${CLIENT_LIBS}
-                                ${QUASSEL_QT_LIBRARIES} ${QUASSEL_SSL_LIBRARIES} ${CLIENT_LIBRARIES} -lbbcascades -lslog2 -lbbplatform -lbbsystem)
+                                ${QUASSEL_QT_LIBRARIES} ${QUASSEL_SSL_LIBRARIES} ${CLIENT_LIBRARIES} -lbbcascades -lslog2 -lbbplatform -lbbsystem -lbb)
   else(BLACKBERRY)
     target_link_libraries(quassel mod_qtui mod_uisupport mod_client mod_core mod_common ${CLIENT_LIBS}
                                 ${QUASSEL_QT_LIBRARIES} ${QUASSEL_SSL_LIBRARIES} ${CLIENT_LIBRARIES})

@@ -18,6 +18,7 @@
 #include <bb/cascades/SystemDefaults>
 #include <bb/cascades/TextArea>
 #include <bb/cascades/TextField>
+#include <bb/cascades/TextFieldInputMode>
 
 #include <bb/cascades/resources/titlebar.h>
 #include <bb/cascades/controls/chromevisibility.h>
@@ -65,6 +66,7 @@ ChatView::ChatView(BufferId id, QString& name)
     m_input = new TextField();
     m_input->setHorizontalAlignment(HorizontalAlignment::Left);
     m_input->setVerticalAlignment(VerticalAlignment::Fill);
+    m_input->setInputMode(TextFieldInputMode::Chat);
     inputContainer->add(m_input);
     m_sendButton = Button::create().text("Send");
     m_sendButton->setHorizontalAlignment(HorizontalAlignment::Right);

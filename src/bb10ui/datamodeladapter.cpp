@@ -13,7 +13,7 @@ DataModelAdapter::DataModelAdapter(QAbstractItemModel* model, QVariantList start
     connect(m_model, SIGNAL(rowsRemoved (const QModelIndex&, int, int)), this, SLOT(handleBufferModelRowsRemoved(const QModelIndex &, int, int)));
     connect(m_model, SIGNAL(rowsInserted (const QModelIndex&, int, int)), this, SLOT(handleBufferModelRowsInserted(const QModelIndex &, int, int)));
     connect(m_model, SIGNAL(dataChanged(const QModelIndex &, const QModelIndex &)), this, SLOT(handleBufferModelDataChanged(const QModelIndex &, const QModelIndex &)));
-    connect(m_model, SIGNAL(layoutChanged()), this, SLOT(handleLayoutChanged));
+    connect(m_model, SIGNAL(layoutChanged()), this, SLOT(handleLayoutChanged()));
 }
 
 int DataModelAdapter::childCount(const QVariantList& indexPath)

@@ -21,6 +21,7 @@ namespace bb
 {
     namespace cascades
     {
+        class ActionItem;
         class Container;
         class ListView;
         class NavigationPane;
@@ -65,8 +66,16 @@ private slots:
     // Channel list clicked
     void onChannelListTriggered(const QVariantList);
     void messagesInserted(const QModelIndex &parent, int start, int end);
+    void onFullscreen();
+    void onThumbnail();
+    void toggleConnection();
+    void updateConnectionState(bool);
 
 private:
+    enum AppState {
+        FullScreen = 0,
+        Thumbnail
+    };
     void showNewIdentityPage();
 
     static Bb10Ui* s_instance;
@@ -75,10 +84,12 @@ private:
     NavigationPane *m_navPane;
     Page* m_chatListPage;
     ListView* m_channelListView;
+    ActionItem* m_connect;
     CertIdentity *m_identity;
     NetworkInfo m_networkInfo;
     QHash<BufferId, ChatView*> m_chatViews;
     bb::system::InvokeRequest m_invokeRequest;
+    AppState m_appState;
 };
 
 Bb10UiStyle* Bb10Ui::uiStyle() { return s_uiStyle; }
