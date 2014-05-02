@@ -19,7 +19,7 @@ public:
     virtual QString itemType(const QVariantList& indexPath);
 
     QModelIndex getQModelIndex(QVariantList list, int column = 0) const;
-private slots:
+public slots:
     void handleBufferModelDataChanged(const QModelIndex & topLeft, const QModelIndex & bottomRight);
     void handleBufferModelRowsRemoved(const QModelIndex & parent, int start, int end);
     void handleBufferModelRowsInserted(const QModelIndex & parent, int start, int end);

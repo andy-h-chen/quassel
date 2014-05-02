@@ -69,7 +69,10 @@ private slots:
     void onFullscreen();
     void onThumbnail();
     void toggleConnection();
-    void updateConnectionState(bool);
+    void updateConnectedState(bool);
+    void updateConnectionState(Network::ConnectionState);
+    void showEditIdentityPage();
+    void navPanePopped(Page*);
 
 private:
     enum AppState {
@@ -84,9 +87,11 @@ private:
     NavigationPane *m_navPane;
     Page* m_chatListPage;
     ListView* m_channelListView;
+    BufferId m_currentBufferId; // the one is currently pushed in navPane
     ActionItem* m_connect;
     CertIdentity *m_identity;
     NetworkInfo m_networkInfo;
+    QStringList m_defaultChannels;
     QHash<BufferId, ChatView*> m_chatViews;
     bb::system::InvokeRequest m_invokeRequest;
     AppState m_appState;

@@ -25,6 +25,7 @@
 #include <QFile>
 #include <QTextStream>
 
+#include "bb10uisettings.h"
 #include "qssparser.h"
 
 Bb10UiStyle::Bb10UiStyle(QObject *parent) : QObject(parent)
@@ -61,13 +62,12 @@ void Bb10UiStyle::generateSettingsQss() const
 
     // ChatView
     ///////////
-    /*
-    QtUiStyleSettings fs("Fonts");
+    Bb10UiStyleSettings fs("Fonts");
     if (fs.value("UseCustomChatViewFont").toBool())
         out << "\n// ChatView Font\n"
             << "ChatLine { " << fontDescription(fs.value("ChatView").value<QFont>()) << "; }\n";
 
-    QtUiStyleSettings s("Colors");
+    Bb10UiStyleSettings s("Colors");
     if (s.value("UseChatViewColors").toBool()) {
         out << "\n// Custom ChatView Colors\n"
 
@@ -108,7 +108,7 @@ void Bb10UiStyle::generateSettingsQss() const
         for (int i = 0; i < 16; i++)
             out << senderQss(i, s);
     }
-*/
+
     // ItemViews
     ////////////
 
@@ -246,11 +246,25 @@ QVariant Bb10UiStyle::channelListViewItemData(const QModelIndex &index, int role
         fmt.merge(_listItemFormats.value(BufferViewItem | UserAway));
         fmt.merge(_listItemFormats.value(fmtType | UserAway));
     }
-    qDebug() << "xxxxx Bb10UiStyle::channelListViewItemData fmt.font = " << fmt.font().toString();
-    qDebug() << "xxxxx Bb10UiStyle::channelListViewItemData fmt.foreground = " << fmt.property(QTextFormat::ForegroundBrush).value<QBrush>().color().rgb();
-    qDebug() << "xxxxx Bb10UiStyle::channelListViewItemData fmt.background = " << fmt.property(QTextFormat::BackgroundBrush).value<QBrush>().color().rgb();
+    qDebug() << "xxxxx Bb10UiStyle::channelListViewItemData fmt.font = " << fmt.font().styleName();
+    qDebug() << "xxxxx Bb10UiStyle::channelListViewItemData fmt.foreground = " << fmt.property(QTextFormat::ForegroundBrush).value<QBrush>().color().name();
+    qDebug() << "xxxxx Bb10UiStyle::channelListViewItemData fmt.background = " << fmt.property(QTextFormat::BackgroundBrush).value<QBrush>().color().name();
 
-    return QVariant();
+    return itemData(role, fmt);
+}
+
+QVariant Bb10UiStyle::itemData(int role, const QTextCharFormat &format) const
+{
+    switch (role) {
+    case Qt::FontRole:
+        return format.font();
+    case Qt::ForegroundRole:
+        return format.property(QTextFormat::ForegroundBrush).value<QBrush>().color().name();
+    case Qt::BackgroundRole:
+        return format.property(QTextFormat::BackgroundBrush).value<QBrush>().color().name();
+    default:
+        return QVariant();
+    }
 }
 
 void Bb10UiStyle::loadStyleSheet()

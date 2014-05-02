@@ -68,7 +68,7 @@ cat <<EOM >$FILE
         <systemChrome>none</systemChrome>
         <transparent>false</transparent>
     </initialWindow>
-    <invoke-target id="irc">
+    <invoke-target id="quassel.irc.bb10">
         <name>Quassel IRC for BB10</name>
         <icon><image>quassel.png</image></icon>
         <type>APPLICATION</type>
@@ -87,6 +87,7 @@ cat <<EOM >$FILE
     </icon>
     <asset path="share/icons/hicolor/114x114/apps/quassel.png">quassel.png</asset>
     <asset path="share/apps">apps</asset>
+    <asset path="share/icons/bb10icons">icons</asset>
     <asset path="assets">assets</asset>   
     <permission system="true">run_native</permission>
     <permission>run_when_backgrounded</permission>

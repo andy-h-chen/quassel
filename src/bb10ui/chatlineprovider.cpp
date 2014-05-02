@@ -42,8 +42,8 @@ void ChatLineProvider::updateItem(ListView* list, bb::cascades::VisualNode *list
     ChatLine *line = static_cast<ChatLine*>(listItem);
     QString sender = senderModelIndex.data(ChatLineModel::DisplayRole).toString();
     QString contents = contentsModelIndex.data(ChatLineModel::DisplayRole).toString();
-    contents.replace("<", "&lt;").replace(">", "&gt;");
-    sender.replace("<", "&lt;").replace(">", "&gt;");
+    contents.replace("<", "&lt;").replace(">", "&gt;").replace("&", "&amp;");
+    sender.replace("<", "&lt;").replace(">", "&gt;").replace("&", "&amp;");
     QString msg = "<html><span style='font-family:Courier New; color:orange'>" + sender + "</span> <span style='font-family:Courier New;'>" + contents + "</span></html>";
     //qDebug() << "xxxxx ChatLineProvider::updateItem flags&Message::Highlight = " << (flags & Message::Highlight);
     line->updateItem(msg);

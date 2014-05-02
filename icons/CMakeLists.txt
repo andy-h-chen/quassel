@@ -24,6 +24,10 @@ if(WANT_MONO OR WANT_QTCLIENT)
     message(STATUS "Not installing Oxygen icons")
   endif(INSTALL_OXY)
 
+  if(BLACKBERRY)
+    install(DIRECTORY bb10icons DESTINATION ${ICON_INSTALL_DIR})
+  endif(BLACKBERRY)
+
   if(EMBED_DATA)
     set(ICON_RCS ../icons/hicolor.qrc ../icons/oxygen.qrc)
     if(INSTALL_OXY)

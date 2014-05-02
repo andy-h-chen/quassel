@@ -122,7 +122,7 @@ SimpleSetupPage::SimpleSetupPage(QObject* parent)
     ActionItem* backAction = ActionItem::create();
     connect(backAction, SIGNAL(triggered()), Bb10Ui::instance(), SLOT(saveIdentityAndServer()));
     m_page->setPaneProperties(NavigationPaneProperties::create().backButton(backAction));
-    qDebug() << "xxxxx SimpleSetupPage::SimpleSetupPage 109";
+    qDebug() << "xxxxx SimpleSetupPage::SimpleSetupPage init done";
 }
 
 SimpleSetupPage::~SimpleSetupPage()
@@ -147,7 +147,7 @@ void SimpleSetupPage::displayIdentity(CertIdentity *id, CertIdentity *saveId)
 
     if (!id)
         return;
-
+    qDebug() << "xxxxx SimpleSetupPage::displayIdentity realname = " << id->realName();
     m_realName->setText(id->realName());
     if (id->nicks().size())
         m_nickName->setText(id->nicks()[0]);
@@ -183,6 +183,7 @@ void SimpleSetupPage::displayNetworkInfo(const NetworkInfo &networkInfo)
 
 void SimpleSetupPage::setDefaultChannels(const QStringList& channels)
 {
+    qDebug() << "xxxxx SimpleSetupPage::setDefaultChannels defaultChannels " << channels;
     m_autojoin->setText(channels.join("\n"));
 }
 

@@ -2,8 +2,10 @@
 
 #include <bb/cascades/ActionItem>
 #include <bb/cascades/Application>
+#include <bb/cascades/Button>
 #include <bb/cascades/Container>
 #include <bb/cascades/Divider>
+#include <bb/cascades/Dialog>
 #include <bb/cascades/DockLayout>
 #include <bb/cascades/Label>
 #include <bb/cascades/LayoutOrientation>
@@ -24,6 +26,9 @@
 #include <bb/platform/NotificationDialog>
 #include <bb/platform/NotificationError>
 #include <bb/platform/NotificationResult>
+
+#include <bb/system/SystemToast>
+#include <bb/system/SystemUiPosition>
 
 #include <QModelIndex>
 
@@ -52,6 +57,7 @@ using namespace bb::system;
 Bb10Ui::Bb10Ui(Application *app)
     : m_simpleSetupPage(0)
     , m_navPane(0)
+    , m_currentBufferId(-1)
     , m_identity(0)
     , m_appState(FullScreen)
 {
@@ -88,11 +94,14 @@ void Bb10Ui::init()
     m_chatListPage->setContent(container);
     connect(m_channelListView, SIGNAL(triggered(const QVariantList)), this, SLOT(onChannelListTriggered(const QVariantList)));
     ActionItem* editIdentity = ActionItem::create()
-    .title("Edit Identity");
-    connect(editIdentity, SIGNAL(triggered()), Bb10Ui::instance(), SLOT(showNewIdentityPage()));
+        .title("Edit Identity")
+        .image(Image("icons/editentity.png"));
+    connect(editIdentity, SIGNAL(triggered()), Bb10Ui::instance(), SLOT(showEditIdentityPage()));
     m_chatListPage->addAction(editIdentity, ActionBarPlacement::OnBar);
 
-    m_connect = ActionItem::create().title("Connect");
+    m_connect = ActionItem::create().title("Disconnected");
+    //m_connect->setImage(Image(QUrl("file://" + QDir::homePath() + "/icons/disconnected.png")));
+    m_connect->setImage(Image("icons/disconnected.png"));
     m_chatListPage->addAction(m_connect, ActionBarPlacement::OnBar);
     connect(m_connect, SIGNAL(triggered()), this, SLOT(toggleConnection()));
 
@@ -117,8 +126,9 @@ void Bb10Ui::init()
     m_invokeRequest.setAction("bb.action.OPEN");
     m_invokeRequest.setTargetTypes(InvokeTarget::Application);
     m_invokeRequest.setMimeType("text/plain");
-    m_invokeRequest.setTarget("irc");
-    
+    m_invokeRequest.setTarget("quassel-irc-bb10");
+
+    connect(m_navPane, SIGNAL(topChanged(Page*)), this, SLOT(navPanePopped(Page*)));
 }
 
 void Bb10Ui::clientNetworkCreated(NetworkId id)
@@ -166,7 +176,9 @@ void Bb10Ui::setConnectedState()
         NetworkId id = Client::networkIds()[0];
         const Network* net = Client::network(id);
         m_networkInfo = net->networkInfo();
-        connect(net, SIGNAL(connectedSet(bool)), this, SLOT(updateConnectionState(bool)));
+        m_identity = new CertIdentity(*Client::identity(Client::identityIds().first()), this);
+        connect(net, SIGNAL(connectedSet(bool)), this, SLOT(updateConnectedState(bool)));
+        connect(net, SIGNAL(connectionStateSet(Network::ConnectionState)), this, SLOT(updateConnectionState(Network::ConnectionState)));
         if (net->connectionState() != Network::Disconnected)
             m_connect->setEnabled(false);
     }
@@ -183,14 +195,13 @@ void Bb10Ui::showNewIdentityPage()
     }
 
     QStringList defaultNets = Network::presetNetworks(true);
-    QStringList defaultChannels;
     qDebug() << "xxxxx Bb10Ui::showNewIdentityPage defaultNets.isEmpty = " << defaultNets.isEmpty();
     if (!defaultNets.isEmpty()) {
         NetworkInfo info = Network::networkInfoFromPreset(defaultNets[0]);
         if (!info.networkName.isEmpty()) {
             m_networkInfo = info;
             qDebug() << "xxxxx Bb10Ui::showNewIdentityPage" << info.networkName << info.serverList.size();
-            defaultChannels = Network::presetDefaultChannels(defaultNets[0]);
+            m_defaultChannels = Network::presetDefaultChannels(defaultNets[0]);
         }
     }
 
@@ -203,7 +214,36 @@ void Bb10Ui::showNewIdentityPage()
     m_navPane->push(m_simpleSetupPage->getPage());
     m_simpleSetupPage->displayIdentity(m_identity);
     m_simpleSetupPage->displayNetworkInfo(m_networkInfo);
-    m_simpleSetupPage->setDefaultChannels(defaultChannels);
+    m_simpleSetupPage->setDefaultChannels(m_defaultChannels);
+}
+
+void Bb10Ui::showEditIdentityPage()
+{
+    const Network *net = Client::network(m_networkInfo.networkId);
+    if (net->connectionState() != Network::Disconnected) {
+        /*
+        Dialog* dlg = Dialog::create();
+        Container* container = Container::create();
+        DockLayout* layout = DockLayout::create();
+        container->add(Label::create("Please disconnect current network to edit identity."));
+        Button* button = Button::create().text("Okay");
+        container->add(button);
+        container->setLayout(layout);
+        dlg->setContent(container);
+        connect(button, SIGNAL(clicked()), dlg, SLOT(close()));
+        dlg->open();*/
+        SystemToast* toast = new SystemToast(this);
+        toast->setBody("Please disconnect current network to edit identity.");
+        toast->setPosition(SystemUiPosition::MiddleCenter);
+        toast->show();
+        return;
+    }
+    if (!m_simpleSetupPage)
+        m_simpleSetupPage = new SimpleSetupPage();
+    m_navPane->push(m_simpleSetupPage->getPage());
+    m_simpleSetupPage->displayIdentity(m_identity);
+    m_simpleSetupPage->displayNetworkInfo(m_networkInfo);
+    m_simpleSetupPage->setDefaultChannels(m_defaultChannels);
 }
 
 void Bb10Ui::saveIdentityAndServer()
@@ -213,8 +253,7 @@ void Bb10Ui::saveIdentityAndServer()
     if (m_identity->id().isValid()) {
         Client::updateIdentity(m_identity->id(), m_identity->toVariantMap());
         identityReady(m_identity->id());
-    }
-    else {
+    } else {
         connect(Client::instance(), SIGNAL(identityCreated(IdentityId)), this, SLOT(identityReady(IdentityId)));
         Client::createIdentity(*m_identity);
     }
@@ -228,6 +267,7 @@ void Bb10Ui::identityReady(IdentityId id)
     m_simpleSetupPage->saveToNetworkInfo(networkInfo);
     networkInfo.identity = id;
     connect(Client::instance(), SIGNAL(networkCreated(NetworkId)), this, SLOT(networkReady(NetworkId)));
+    m_defaultChannels = m_simpleSetupPage->channels();
     Client::createNetwork(networkInfo, m_simpleSetupPage->channels());
 }
 
@@ -237,6 +277,11 @@ void Bb10Ui::networkReady(NetworkId id)
     disconnect(Client::instance(), SIGNAL(networkCreated(NetworkId)), this, SLOT(networkReady(NetworkId)));
     const Network *net = Client::network(id);
     Q_ASSERT(net);
+    connect(net, SIGNAL(connectedSet(bool)), this, SLOT(updateConnectedState(bool)));
+    connect(net, SIGNAL(connectionStateSet(Network::ConnectionState)), this, SLOT(updateConnectionState(Network::ConnectionState)));
+    if (net->connectionState() != Network::Disconnected)
+        m_connect->setEnabled(false);
+
     net->requestConnect();
 }
 
@@ -279,17 +324,27 @@ void Bb10Ui::onChannelListTriggered(const QVariantList index)
         view = new ChatView(id, bufferName);
         m_chatViews[id] = view;
     }
-    m_navPane->push(view->getPage());
+    m_currentBufferId = id;
+    Client::bufferModel()->switchToBuffer(id);
+    navPanePush(view->getPage());
 }
 
 void Bb10Ui::navPanePop()
 {
+    // pop the page of a ChatView, we need to update m_currentBufferId
+    m_currentBufferId = -1;
     m_navPane->pop();
 }
 
 void Bb10Ui::navPanePush(Page* page)
 {
     m_navPane->push(page);
+}
+
+void Bb10Ui::navPanePopped(Page* page)
+{
+    if (page == m_chatListPage)
+        m_currentBufferId = -1;
 }
 
 void Bb10Ui::messagesInserted(const QModelIndex &parent, int start, int end)
@@ -311,26 +366,29 @@ void Bb10Ui::messagesInserted(const QModelIndex &parent, int start, int end)
         BufferInfo::Type bufType = Client::networkModel()->bufferType(bufId);
 
         // check if bufferId belongs to the shown chatlists
-        if (!m_chatViews.contains(bufId)) {
-            qDebug() << "xxxxx Bb10Ui::messagesInserted line 297";
-            continue;
-        }
+        // All chats will be shown, but keep this code here until I get the filter working.
+        //if (!m_chatViews.contains(bufId)) {
+        //    continue;
+        //}
 
         // check if it's the buffer currently displayed
-        if (hasFocus && bufId == Client::bufferModel()->currentBuffer()) {
-            qDebug() << "xxxxx Bb10Ui::messagesInserted line 303";
+        if (hasFocus && bufId == m_currentBufferId) {
+            qDebug() << "xxxxx Bb10Ui::messagesInserted buffer is currently at the top of navPane";
             continue;
         }
 
         // only show notifications for higlights or queries
         if (bufType != BufferInfo::QueryBuffer && !(flags & Message::Highlight)) {
-            qDebug() << "xxxxx Bb10Ui::messagesInserted line 309";
+            // This is a hack.
+            // We need a way to notify ListView to update a single item.
+            QModelIndex source_index = Client::bufferModel()->mapFromSource(Client::networkModel()->bufferIndex(bufId));
+            qobject_cast<DataModelAdapter*>(m_channelListView->dataModel())->handleBufferModelDataChanged(source_index, source_index);
             continue;
         }
 
         // and of course: don't notify for ignored messages
         if (Client::ignoreListManager() && Client::ignoreListManager()->match(idx.data(MessageModel::MessageRole).value<Message>(), Client::networkModel()->networkName(bufId))) {
-            qDebug() << "xxxxx Bb10Ui::messagesInserted line 315";
+            qDebug() << "xxxxx Bb10Ui::messagesInserted early return for ignored message";
             continue;
         }
 
@@ -352,7 +410,7 @@ void Bb10Ui::messagesInserted(const QModelIndex &parent, int start, int end)
         */
         //QtUi::instance()->invokeNotification(bufId, type, sender, contents);
         if (hasFocus) {
-            // process in-app notification
+            // FIXME: what do we need to do here?
         } else {
             QString bufferName = (bufType == BufferInfo::QueryBuffer) ? "Private msg" : Client::networkModel()->bufferName(bufId);
             Notification* pNotification = new Notification();
@@ -381,23 +439,55 @@ void Bb10Ui::onThumbnail()
 void Bb10Ui::toggleConnection()
 {
     const Network *net = Client::network(m_networkInfo.networkId);
-    if (net && net->isConnected() && m_connect->title() == "Disconnect") {
+    if (net && net->isConnected() && m_connect->title() == "Connected") {
         m_connect->setEnabled(false);
         net->requestDisconnect();
         return;
     }
-    if (net && !net->isConnected() && m_connect->title() == "Connect") {
+    if (net && !net->isConnected() && m_connect->title() == "Disconnected") {
         m_connect->setEnabled(false);
         net->requestConnect();
     }
         
 }
 
-void Bb10Ui::updateConnectionState(bool connected)
+void Bb10Ui::updateConnectedState(bool connected)
 {
-    if (connected)
-        m_connect->setTitle("Disconnect");
-    else
-        m_connect->setTitle("Connect");
+    if (connected) {
+        m_connect->setTitle("Connected");
+        m_connect->setImage(Image("icons/connected.png"));
+    } else {
+        m_connect->setTitle("Disconnected");
+        m_connect->setImage(Image("icons/disconnected.png"));
+    }
     m_connect->setEnabled(true);
+}
+
+void Bb10Ui::updateConnectionState(Network::ConnectionState s)
+{
+    if (m_connect->isEnabled())
+        return;
+
+    switch(s) {
+    case Network::Disconnected:
+        m_connect->setTitle("Disconnected");
+        break;
+    case Network::Connecting:
+        m_connect->setTitle("Connecting");
+        break;
+    case Network::Initializing:
+        m_connect->setTitle("Initializing");
+        break;
+    case Network::Initialized:
+        m_connect->setTitle("Initialized");
+        break;
+    case Network::Reconnecting:
+        m_connect->setTitle("Reconnecting");
+        break;
+    case Network::Disconnecting:
+        m_connect->setTitle("Disconnecting");
+        break;
+    default:
+        break;
+    }
 }
