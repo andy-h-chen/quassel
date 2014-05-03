@@ -34,6 +34,8 @@ private slots:
     void onKeyPressHandler(KeyEvent*);
     void sendMessage();
     void showNicks();
+    void onNickListTriggered(const QVariantList);
+    void queryNick();
 private:
     Page* m_page;
     TextField* m_input;

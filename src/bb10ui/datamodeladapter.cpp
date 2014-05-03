@@ -20,7 +20,7 @@ int DataModelAdapter::childCount(const QVariantList& indexPath)
 {
     const int level = indexPath.size();
     QModelIndex startIndex = getStartIndex();
-    qDebug() << "xxxxx DataModelAdapter::childCount startIndex = " << startIndex << startIndex.isValid() << m_startPoint.size();
+    //qDebug() << "xxxxx DataModelAdapter::childCount startIndex = " << startIndex << startIndex.isValid() << m_startPoint.size();
     if (level == 0) {
         return startIndex.isValid() ? m_model->rowCount(startIndex) : m_model->rowCount();
     }
@@ -73,7 +73,7 @@ QVariant DataModelAdapter::data(const QVariantList& indexPath)
         value = startIndex.isValid() ? m_model->data(startIndex.child(header, 0).child(childItem, 0)) : m_model->data(m_model->index(header, 0).child(childItem, 0));
     }
 
-    qDebug() << "xxxxx DataModelAdapter::data Data for " << indexPath << " is " << value;
+    //qDebug() << "xxxxx DataModelAdapter::data Data for " << indexPath << " is " << value;
 
     return value;
 }
@@ -95,7 +95,7 @@ QString DataModelAdapter::itemType(const QVariantList& indexPath)
 
 void DataModelAdapter::handleLayoutChanged()
 {
-    qDebug() << "xxxxx DataModelAdapter::handleLayoutChanged";
+    //qDebug() << "xxxxx DataModelAdapter::handleLayoutChanged";
     emit itemsChanged(bb::cascades::DataModelChangeType::AddRemove); 
 }
 
@@ -132,7 +132,7 @@ void DataModelAdapter::handleBufferModelRowsRemoved(const QModelIndex & parent, 
 
 void DataModelAdapter::handleBufferModelRowsInserted(const QModelIndex & parent, int start, int end)
 {
-    qDebug() << "xxxxx DataModelAdapter::handleBufferModelRowsInserted parent = " << parent << start << end;
+    //qDebug() << "xxxxx DataModelAdapter::handleBufferModelRowsInserted parent = " << parent << start << end;
     if (parent.column() >= 1)
         return;
 
@@ -142,7 +142,7 @@ void DataModelAdapter::handleBufferModelRowsInserted(const QModelIndex & parent,
         if (parent.row() != -1)
             list.push_back(parent.row());
         list.push_back(i);
-        qDebug() << "xxxxx DataModelAdapter::handleBufferModelRowsInserted list = " << list;
+        //qDebug() << "xxxxx DataModelAdapter::handleBufferModelRowsInserted list = " << list;
         emit itemAdded(list);
     }
 }
@@ -158,6 +158,18 @@ QModelIndex DataModelAdapter::getQModelIndex(QVariantList list, int column) cons
         return startIndex.isValid() ? startIndex.child(list[0].toInt(), column).child(list[1].toInt(), column) : m_model->index(list[0].toInt(), column).child(list[1].toInt(), column);
 
     return QModelIndex();
+}
+
+QVariantList DataModelAdapter::getDataModelIndex(QModelIndex index) const
+{
+    if (!index.isValid())
+        return QVariantList();
+
+    QVariantList list;
+    if (index.parent().row() != -1)
+        list.push_back(index.parent().row());
+    list.push_back(index.row());
+    return list;
 }
 
 QModelIndex DataModelAdapter::getStartIndex() const

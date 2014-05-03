@@ -476,7 +476,7 @@ QVariant ChannelListViewFilter::data(const QModelIndex &index, int role) const
     case Qt::CheckStateRole:
         return checkedState(index);
     default:
-        Bb10Ui::uiStyle()->channelListViewItemData(mapToSource(index), role);
+        //Bb10Ui::uiStyle()->channelListViewItemData(mapToSource(index), role);
         return QSortFilterProxyModel::data(index, role);
     }
 }

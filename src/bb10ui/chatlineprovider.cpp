@@ -34,7 +34,6 @@ void ChatLineProvider::updateItem(ListView* list, bb::cascades::VisualNode *list
 
     QModelIndex msgIndex = static_cast<DataModelAdapter*>(list->dataModel())->getQModelIndex(indexPath, 2);
 
-    //Message message = msgIndex.data(MessageModel::MessageRole).value<Message>();
     int flags = msgIndex.data(MessageModel::FlagsRole).value<int>();
 
     QModelIndex contentsModelIndex = static_cast<DataModelAdapter*>(list->dataModel())->getQModelIndex(indexPath, (int)ChatLineModel::ContentsColumn);
@@ -42,10 +41,9 @@ void ChatLineProvider::updateItem(ListView* list, bb::cascades::VisualNode *list
     ChatLine *line = static_cast<ChatLine*>(listItem);
     QString sender = senderModelIndex.data(ChatLineModel::DisplayRole).toString();
     QString contents = contentsModelIndex.data(ChatLineModel::DisplayRole).toString();
-    contents.replace("<", "&lt;").replace(">", "&gt;").replace("&", "&amp;");
-    sender.replace("<", "&lt;").replace(">", "&gt;").replace("&", "&amp;");
+    contents.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;");
+    sender.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;");
     QString msg = "<html><span style='font-family:Courier New; color:orange'>" + sender + "</span> <span style='font-family:Courier New;'>" + contents + "</span></html>";
-    //qDebug() << "xxxxx ChatLineProvider::updateItem flags&Message::Highlight = " << (flags & Message::Highlight);
     line->updateItem(msg);
     if (flags & Message::Highlight)
         line->setHighlight(true);

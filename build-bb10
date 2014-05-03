@@ -59,7 +59,7 @@ cat <<EOM >$FILE
 <qnx xmlns="http://www.qnx.com/schemas/application/1.0">
     <id>quassel-irc-bb10</id>
     <name>Quassel IRC For BB10</name>
-    <versionNumber>1.0.0</versionNumber>
+    <versionNumber>0.5.0</versionNumber>
     <buildId>1</buildId>
     <description>Quassel IRC</description>
     <author>Andy H. Chen</author>
@@ -91,7 +91,6 @@ cat <<EOM >$FILE
     <asset path="assets">assets</asset>   
     <permission system="true">run_native</permission>
     <permission>run_when_backgrounded</permission>
-    <permission>access_notify_settings_control</permission>
     <permission>post_notification</permission>
     <env var="LD_LIBRARY_PATH" value="app/native/lib:/usr/lib/qt4/lib"/>
 </qnx>

@@ -1,6 +1,7 @@
 #include "chatview.h"
 
 #include <bb/cascades/ActionItem>
+#include <bb/cascades/ActionSet>
 #include <bb/cascades/Button>
 #include <bb/cascades/Container>
 #include <bb/cascades/Divider>
@@ -122,7 +123,7 @@ void ChatView::showNicks()
         NickViewFilter* nickViewFilter = new NickViewFilter(m_id, Client::networkModel());
         QVariantList startPoint;
         for (int i=0; i<nickViewFilter->rowCount() && !startPoint.size(); i++) {  // loop thru networks
-            for (int j=0; j<nickViewFilter->rowCount(nickViewFilter->index(i, 0)); j++) { // loop thru channels
+            for (int j=0; j<nickViewFilter->rowCount(nickViewFilter->index(i, 0)) && !startPoint.size(); j++) { // loop thru channels
                 if (nickViewFilter->data(nickViewFilter->index(i, 0).child(j, 0), NetworkModel::BufferIdRole).value<BufferId>() == m_id) {
                     startPoint.push_back(i);
                     startPoint.push_back(j);
@@ -134,7 +135,40 @@ void ChatView::showNicks()
         m_nickListView->setDataModel(new DataModelAdapter(nickViewFilter, startPoint));
         //m_nickListView->setListItemProvider(new NickListItemProvider());
         m_nickListPage->setContent(m_nickListView);
+        connect(m_nickListView, SIGNAL(triggered(const QVariantList)), this, SLOT(onNickListTriggered(const QVariantList)));
+        ActionItem* query = ActionItem::create().title("Query").image(Image("icons/query.png"));
+        ActionSet* actions = ActionSet::create();
+        actions->add(query);
+        m_nickListView->addActionSet(actions);
+        connect(query, SIGNAL(triggered()), this, SLOT(queryNick()));
     }
     Bb10Ui::instance()->navPanePush(m_nickListPage);
 }
 
+void ChatView::onNickListTriggered(const QVariantList index)
+{
+    QModelIndex modelIndex = static_cast<DataModelAdapter*>(m_nickListView->dataModel())->getQModelIndex(index);
+    QString nick = modelIndex.data(Qt::DisplayRole).value<QString>();
+    qDebug() << "xxxxx ChatView::onNickListTriggered nick = " << nick;
+    QString text = m_input->text();
+    if (!text.length())
+        m_input->setText(nick + ": ");
+    else if (text.at(text.length()) == ' ')
+        m_input->setText(text + nick);
+    else
+        m_input->setText(text + ' ' + nick);
+    Bb10Ui::instance()->navPanePop();
+    m_input->requestFocus();
+}
+
+void ChatView::queryNick()
+{
+    QVariantList index = m_nickListView->selected();
+    if (index.length() < 2)
+        return;
+
+    QModelIndex modelIndex = static_cast<DataModelAdapter*>(m_nickListView->dataModel())->getQModelIndex(index);
+    QString nick = modelIndex.data(Qt::DisplayRole).value<QString>();
+    qDebug() << "xxxxx ChatView::queryNick selected = " << index;
+    Bb10Ui::instance()->switchToOrJoinChat(nick, true);
+}

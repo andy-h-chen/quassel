@@ -27,8 +27,11 @@
 #include <bb/platform/NotificationError>
 #include <bb/platform/NotificationResult>
 
+#include <bb/system/SystemPrompt>
 #include <bb/system/SystemToast>
+#include <bb/system/SystemUiModality>
 #include <bb/system/SystemUiPosition>
+#include <bb/system/SystemUiResult>
 
 #include <QModelIndex>
 
@@ -93,17 +96,23 @@ void Bb10Ui::init()
     container->add(m_channelListView);
     m_chatListPage->setContent(container);
     connect(m_channelListView, SIGNAL(triggered(const QVariantList)), this, SLOT(onChannelListTriggered(const QVariantList)));
-    ActionItem* editIdentity = ActionItem::create()
+    m_editIdentity = ActionItem::create()
         .title("Edit Identity")
         .image(Image("icons/editentity.png"));
-    connect(editIdentity, SIGNAL(triggered()), Bb10Ui::instance(), SLOT(showEditIdentityPage()));
-    m_chatListPage->addAction(editIdentity, ActionBarPlacement::OnBar);
+    connect(m_editIdentity, SIGNAL(triggered()), Bb10Ui::instance(), SLOT(showEditIdentityPage()));
+    m_chatListPage->addAction(m_editIdentity, ActionBarPlacement::OnBar);
 
     m_connect = ActionItem::create().title("Disconnected");
     //m_connect->setImage(Image(QUrl("file://" + QDir::homePath() + "/icons/disconnected.png")));
     m_connect->setImage(Image("icons/disconnected.png"));
     m_chatListPage->addAction(m_connect, ActionBarPlacement::OnBar);
     connect(m_connect, SIGNAL(triggered()), this, SLOT(toggleConnection()));
+
+    m_joinChannel = ActionItem::create()
+        .title("Join Channel")
+        .image(Image("icons/join.png"));
+    m_chatListPage->addAction(m_joinChannel, ActionBarPlacement::OnBar);
+    connect(m_joinChannel, SIGNAL(triggered()), this, SLOT(showJoinChannelDlg()));
 
     m_navPane->push(m_chatListPage);
 
@@ -126,7 +135,7 @@ void Bb10Ui::init()
     m_invokeRequest.setAction("bb.action.OPEN");
     m_invokeRequest.setTargetTypes(InvokeTarget::Application);
     m_invokeRequest.setMimeType("text/plain");
-    m_invokeRequest.setTarget("quassel-irc-bb10");
+    m_invokeRequest.setTarget("quassel.irc.bb10");
 
     connect(m_navPane, SIGNAL(topChanged(Page*)), this, SLOT(navPanePopped(Page*)));
 }
@@ -221,17 +230,6 @@ void Bb10Ui::showEditIdentityPage()
 {
     const Network *net = Client::network(m_networkInfo.networkId);
     if (net->connectionState() != Network::Disconnected) {
-        /*
-        Dialog* dlg = Dialog::create();
-        Container* container = Container::create();
-        DockLayout* layout = DockLayout::create();
-        container->add(Label::create("Please disconnect current network to edit identity."));
-        Button* button = Button::create().text("Okay");
-        container->add(button);
-        container->setLayout(layout);
-        dlg->setContent(container);
-        connect(button, SIGNAL(clicked()), dlg, SLOT(close()));
-        dlg->open();*/
         SystemToast* toast = new SystemToast(this);
         toast->setBody("Please disconnect current network to edit identity.");
         toast->setPosition(SystemUiPosition::MiddleCenter);
@@ -276,6 +274,7 @@ void Bb10Ui::networkReady(NetworkId id)
     qDebug() << "xxxxx Bb10Ui::networkReady " << id;
     disconnect(Client::instance(), SIGNAL(networkCreated(NetworkId)), this, SLOT(networkReady(NetworkId)));
     const Network *net = Client::network(id);
+    m_networkInfo = net->networkInfo();
     Q_ASSERT(net);
     connect(net, SIGNAL(connectedSet(bool)), this, SLOT(updateConnectedState(bool)));
     connect(net, SIGNAL(connectionStateSet(Network::ConnectionState)), this, SLOT(updateConnectionState(Network::ConnectionState)));
@@ -295,6 +294,7 @@ void Bb10Ui::bufferViewConfigAdded(int bufferViewConfigId)
     DataModelAdapter* model = new DataModelAdapter(new ChannelListViewFilter(Client::bufferModel(), config));
     connect(config, SIGNAL(configChanged()), model, SIGNAL(handleLayoutChanged()));
     m_channelListView->setDataModel(model);
+    connect(model, SIGNAL(itemAdded(QVariantList)), this, SLOT(pushToBeJoined(QVariantList)));
 }
 
 void Bb10Ui::bufferViewConfigDeleted(int bufferViewConfigId)
@@ -313,7 +313,7 @@ AbstractMessageProcessor *Bb10Ui::createMessageProcessor(QObject *parent)
 
 void Bb10Ui::onChannelListTriggered(const QVariantList index)
 {
-    QModelIndex modelIndex = static_cast<DataModelAdapter*>(m_channelListView->dataModel())->getQModelIndex(index);
+    QModelIndex modelIndex = qobject_cast<DataModelAdapter*>(m_channelListView->dataModel())->getQModelIndex(index);
     BufferInfo bufferInfo = modelIndex.data(NetworkModel::BufferInfoRole).value<BufferInfo>();
     BufferId id = bufferInfo.bufferId();
     QString bufferName = bufferInfo.bufferName();
@@ -331,8 +331,11 @@ void Bb10Ui::onChannelListTriggered(const QVariantList index)
 
 void Bb10Ui::navPanePop()
 {
-    // pop the page of a ChatView, we need to update m_currentBufferId
-    m_currentBufferId = -1;
+    if (m_navPane->top() == m_chatListPage) {
+        // pop the page of a ChatView, we need to update m_currentBufferId
+        m_currentBufferId = -1;
+        return;
+    }
     m_navPane->pop();
 }
 
@@ -351,11 +354,10 @@ void Bb10Ui::messagesInserted(const QModelIndex &parent, int start, int end)
 {
     Q_UNUSED(parent);
     bool hasFocus = Application::instance()->isFullscreen();
-    qDebug() << "xxxxx Bb10Ui::messagesInserted m_appState = " << m_appState << " Application::instance()->isFullScreen() = " << Application::instance()->isFullscreen();
+    //qDebug() << "xxxxx Bb10Ui::messagesInserted m_appState = " << m_appState << " Application::instance()->isFullScreen() = " << Application::instance()->isFullscreen();
     for (int i = start; i <= end; i++) {
         QModelIndex idx = Client::messageModel()->index(i, ChatLineModel::ContentsColumn);
         if (!idx.isValid()) {
-            qDebug() << "Bb10Ui::messagesInserted(): Invalid model index!";
             continue;
         }
         Message::Flags flags = (Message::Flags)idx.data(ChatLineModel::FlagsRole).toInt();
@@ -373,7 +375,6 @@ void Bb10Ui::messagesInserted(const QModelIndex &parent, int start, int end)
 
         // check if it's the buffer currently displayed
         if (hasFocus && bufId == m_currentBufferId) {
-            qDebug() << "xxxxx Bb10Ui::messagesInserted buffer is currently at the top of navPane";
             continue;
         }
 
@@ -396,27 +397,18 @@ void Bb10Ui::messagesInserted(const QModelIndex &parent, int start, int end)
         QModelIndex senderIdx = Client::messageModel()->index(i, ChatLineModel::SenderColumn);
         QString sender = senderIdx.data(ChatLineModel::EditRole).toString();
         QString contents = idx.data(ChatLineModel::DisplayRole).toString();
-        /*
-        AbstractNotificationBackend::NotificationType type;
 
-        if (bufType == BufferInfo::QueryBuffer && !hasFocus)
-            type = AbstractNotificationBackend::PrivMsg;
-        else if (bufType == BufferInfo::QueryBuffer && hasFocus)
-            type = AbstractNotificationBackend::PrivMsgFocused;
-        else if (flags & Message::Highlight && !hasFocus)
-            type = AbstractNotificationBackend::Highlight;
-        else
-            type = AbstractNotificationBackend::HighlightFocused;
-        */
-        //QtUi::instance()->invokeNotification(bufId, type, sender, contents);
+        QString bufferName = (bufType == BufferInfo::QueryBuffer) ? "Private msg" : Client::networkModel()->bufferName(bufId);
+        QString body = "[" + bufferName + "] " + sender + " says: " + contents;
         if (hasFocus) {
-            // FIXME: what do we need to do here?
+            SystemToast* toast = new SystemToast(this);
+            toast->setBody(body);
+            toast->setPosition(SystemUiPosition::MiddleCenter);
+            toast->show();
         } else {
-            QString bufferName = (bufType == BufferInfo::QueryBuffer) ? "Private msg" : Client::networkModel()->bufferName(bufId);
             Notification* pNotification = new Notification();
-
             pNotification->setTitle("Quassel IRC for BB10");
-            pNotification->setBody("[" + bufferName + "] " + sender + " says: " + contents);
+            pNotification->setBody(body);
             pNotification->setInvokeRequest(m_invokeRequest);
             // FIXME: call setData to add bufferId, so that we can open the page.
             pNotification->notify();
@@ -491,3 +483,58 @@ void Bb10Ui::updateConnectionState(Network::ConnectionState s)
         break;
     }
 }
+
+void Bb10Ui::showJoinChannelDlg()
+{
+    const Network *net = Client::network(m_networkInfo.networkId);
+    if (net->connectionState() != Network::Initialized) {
+        SystemToast* toast = new SystemToast(this);
+        toast->setBody("Please connect to a network to join channel.");
+        toast->setPosition(SystemUiPosition::MiddleCenter);
+        toast->show();
+        return;
+    }
+    SystemPrompt* prompt = new SystemPrompt();
+    prompt->setModality(SystemUiModality::Application);
+    prompt->setTitle("Join a channel");
+    prompt->inputField()->setDefaultText("#");
+    prompt->confirmButton()->setLabel("Join");
+    connect(prompt, SIGNAL(finished(bb::system::SystemUiResult::Type)), this, SLOT(onPromptFinished(bb::system::SystemUiResult::Type)));
+    prompt->show();
+}
+
+void Bb10Ui::onPromptFinished(bb::system::SystemUiResult::Type type)
+{
+	SystemPrompt *prompt = qobject_cast<SystemPrompt *>(sender());
+    if (type == SystemUiResult::ConfirmButtonSelection) {
+        	QString text = prompt->inputFieldTextEntry();
+        	switchToOrJoinChat(text, false);
+    }
+    prompt->deleteLater();
+}
+
+void Bb10Ui::switchToOrJoinChat(QString& name, bool isQuery)
+{
+    BufferId bufId = Client::networkModel()->bufferId(m_networkInfo.networkId, name);
+    if (m_chatViews.contains(bufId)) {
+        qDebug() << "xxxxx Bb10Ui::switchToOrJoinChat bufId = " << bufId << " name = " << name;
+        while (m_currentBufferId != -1)
+            navPanePop();
+        navPanePush(m_chatViews[bufId]->getPage());
+        return;
+    }
+    m_toBeJoined = name;
+    Client::userInput(BufferInfo::fakeStatusBuffer(m_networkInfo.networkId), QString(isQuery ? "/QUERY %1" : "/JOIN %1").arg(name));
+}
+
+void Bb10Ui::pushToBeJoined(QVariantList index)
+{
+    QModelIndex modelIndex = qobject_cast<DataModelAdapter*>(m_channelListView->dataModel())->getQModelIndex(index);
+    BufferInfo bufferInfo = modelIndex.data(NetworkModel::BufferInfoRole).value<BufferInfo>();
+    if (m_toBeJoined.length() && bufferInfo.bufferName() == m_toBeJoined) {
+        while (m_currentBufferId != -1)
+            navPanePop();
+        onChannelListTriggered(index);
+    }
+}
+

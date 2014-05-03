@@ -3,6 +3,7 @@
 
 #include <bb/cascades/Application>
 #include <bb/system/InvokeRequest>
+#include <bb/system/SystemUiResult>
 
 #include "abstractui.h"
 #include "network.h"
@@ -45,7 +46,8 @@ public:
     void init();
 
     inline static Bb10UiStyle *uiStyle();
-    //Page *createChannelList();
+    void switchToOrJoinChat(QString&, bool);
+
 protected slots:
     void connectedToCore();
     void setConnectedState();
@@ -73,6 +75,9 @@ private slots:
     void updateConnectionState(Network::ConnectionState);
     void showEditIdentityPage();
     void navPanePopped(Page*);
+    void showJoinChannelDlg();
+    void onPromptFinished(bb::system::SystemUiResult::Type);
+    void pushToBeJoined(QVariantList);
 
 private:
     enum AppState {
@@ -89,12 +94,15 @@ private:
     ListView* m_channelListView;
     BufferId m_currentBufferId; // the one is currently pushed in navPane
     ActionItem* m_connect;
+    ActionItem* m_editIdentity;
+    ActionItem* m_joinChannel;
     CertIdentity *m_identity;
     NetworkInfo m_networkInfo;
     QStringList m_defaultChannels;
     QHash<BufferId, ChatView*> m_chatViews;
     bb::system::InvokeRequest m_invokeRequest;
     AppState m_appState;
+    QString m_toBeJoined;
 };
 
 Bb10UiStyle* Bb10Ui::uiStyle() { return s_uiStyle; }
