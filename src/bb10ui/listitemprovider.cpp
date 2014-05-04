@@ -1,4 +1,4 @@
-#include "chatlineprovider.h"
+#include "listitemprovider.h"
 
 #include <bb/cascades/ListView>
 #include <bb/cascades/ScrollAnimation>

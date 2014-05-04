@@ -12,7 +12,7 @@ set(SOURCES
     chatline.cpp
     chatlinemodel.cpp
     chatlinemodelitem.cpp
-    chatlineprovider.cpp
+    listitemprovider.cpp
     chatview.cpp
     datamodeladapter.cpp
     nicklistitem.cpp
@@ -35,7 +35,7 @@ set(MOC_HDRS
 set(HEADERS
     bb10uisettings.h
     chatlinemodelitem.h
-    chatlineprovider.h
+    listitemprovider.h
     nicklistitemprovider.h)
 
 include_directories(${CMAKE_SOURCE_DIR}/src/common

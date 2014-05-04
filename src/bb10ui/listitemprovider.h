@@ -1,5 +1,5 @@
-#ifndef _CHATLINEPROVIDER_H_
-#define _CHATLINEPROVIDER_H_
+#ifndef _LISTITEMPROVIDER_H_
+#define _LISTITEMPROVIDER_H_
 
 #include <bb/cascades/ListItemProvider>
 
@@ -24,4 +24,4 @@ private:
     bool m_scrollToNewLine;
 };
 
-#endif // ifndef _CHATLINEPROVIDER_H_
+#endif // ifndef _LISTITEMPROVIDER_H_

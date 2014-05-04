@@ -25,7 +25,7 @@
 #include <bb/cascades/controls/chromevisibility.h>
 
 #include "bb10ui.h"
-#include "chatlineprovider.h"
+#include "listitemprovider.h"
 #include "datamodeladapter.h"
 #include "messagefilter.h"
 #include "nicklistitemprovider.h"
@@ -82,7 +82,7 @@ ChatView::ChatView(BufferId id, QString& name)
     m_input->addKeyListener(inputKeyListener);
 
     ActionItem* nickList = ActionItem::create()
-    .title("Nick List");
+    .title("Nick List").image(Image("icons/nicklist.png"));
     connect(nickList, SIGNAL(triggered()), this, SLOT(showNicks()));
     m_page->addAction(nickList, ActionBarPlacement::OnBar);
 
