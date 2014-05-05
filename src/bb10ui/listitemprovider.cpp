@@ -1,10 +1,18 @@
 #include "listitemprovider.h"
 
+#include <bb/cascades/Color>
+#include <bb/cascades/Container>
+#include <bb/cascades/DockLayout>
+#include <bb/cascades/ImageView>
+#include <bb/cascades/Label>
+#include <bb/cascades/StackLayout>
+#include <bb/cascades/StackLayoutProperties>
+#include <bb/cascades/SystemDefaults>
+#include <bb/cascades/TextStyle>
 #include <bb/cascades/ListView>
 #include <bb/cascades/ScrollAnimation>
 #include <bb/cascades/ScrollPosition>
 
-#include "chatline.h"
 #include "chatlinemodel.h"
 #include "datamodeladapter.h"
 #include "message.h"
@@ -32,13 +40,13 @@ void ChatLineProvider::updateItem(ListView* list, bb::cascades::VisualNode *list
     Q_UNUSED(type);
     Q_UNUSED(data);
 
-    QModelIndex msgIndex = static_cast<DataModelAdapter*>(list->dataModel())->getQModelIndex(indexPath, 2);
+    QModelIndex msgIndex = qobject_cast<DataModelAdapter*>(list->dataModel())->getQModelIndex(indexPath, 2);
 
     int flags = msgIndex.data(MessageModel::FlagsRole).value<int>();
 
-    QModelIndex contentsModelIndex = static_cast<DataModelAdapter*>(list->dataModel())->getQModelIndex(indexPath, (int)ChatLineModel::ContentsColumn);
-    QModelIndex senderModelIndex = static_cast<DataModelAdapter*>(list->dataModel())->getQModelIndex(indexPath, (int)ChatLineModel::SenderColumn);
-    ChatLine *line = static_cast<ChatLine*>(listItem);
+    QModelIndex contentsModelIndex = qobject_cast<DataModelAdapter*>(list->dataModel())->getQModelIndex(indexPath, (int)ChatLineModel::ContentsColumn);
+    QModelIndex senderModelIndex = qobject_cast<DataModelAdapter*>(list->dataModel())->getQModelIndex(indexPath, (int)ChatLineModel::SenderColumn);
+    ChatLine *line = qobject_cast<ChatLine*>(listItem);
     QString sender = senderModelIndex.data(ChatLineModel::DisplayRole).toString();
     QString contents = contentsModelIndex.data(ChatLineModel::DisplayRole).toString();
     contents.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;");
@@ -51,4 +59,195 @@ void ChatLineProvider::updateItem(ListView* list, bb::cascades::VisualNode *list
         list->scrollToPosition(ScrollPosition::End, ScrollAnimation::Default);
         m_scrollToNewLine = false;
     }
+}
+
+////////////////////////// ChatLine ////////////////////////////////////
+ChatLine::ChatLine(Container *parent) :
+    CustomControl(parent)
+{
+    m_container = new Container();
+    StackLayout *contentLayout = new StackLayout();
+    contentLayout->setOrientation(LayoutOrientation::LeftToRight);
+    m_container->setLeftPadding(3.0f);
+    m_container->setLayout(contentLayout);
+    m_container->setHorizontalAlignment(HorizontalAlignment::Fill);
+
+    m_itemLabel = Label::create().text("");
+    m_itemLabel->setVerticalAlignment(VerticalAlignment::Center);
+    m_itemLabel->setMultiline(true);
+    m_itemLabel->setLeftMargin(30.0f);
+
+    m_container->add(m_itemLabel);
+
+    setRoot(m_container);
+}
+
+void ChatLine::updateItem(const QString text)
+{
+    m_itemLabel->setText(text);
+}
+
+void ChatLine::select(bool select)
+{
+    Q_UNUSED(select);
+}
+
+void ChatLine::reset(bool selected, bool activated)
+{
+    Q_UNUSED(activated);
+    Q_UNUSED(selected);
+}
+
+void ChatLine::activate(bool activate)
+{
+    Q_UNUSED(activate);
+}
+
+void ChatLine::setHighlight(bool b)
+{
+    if (b)
+        m_container->setBackground(Color::DarkGray);
+    else
+        m_container->resetBackground();
+}
+
+//////////////////////// ChannelListItemProvider ////////////////////////////
+ChannelListItemProvider::ChannelListItemProvider()
+{
+}
+
+VisualNode * ChannelListItemProvider::createItem(ListView* list, const QString &type)
+{
+    Q_UNUSED(list);
+    if (type == "header")
+        return new ChannelListHeader();
+
+    return new ChannelListItem();
+}
+
+void ChannelListItemProvider::updateItem(ListView* list, VisualNode *listItem, const QString &type, const QVariantList &indexPath, const QVariant &data)
+{
+    Q_UNUSED(list);
+    Q_UNUSED(indexPath);
+    if (type == "header") {
+        ChannelListHeader* header = qobject_cast<ChannelListHeader*>(listItem);
+        header->updateItem(data.toString());
+    } else {
+        ChannelListItem* item = qobject_cast<ChannelListItem*>(listItem);
+        item->updateItem(data.toString());
+    }
+}
+
+/////////////////////// ChannelListHeader //////////////////////////////////
+ChannelListHeader::ChannelListHeader(Container* parent)
+    : CustomControl(parent)
+{
+    m_container = new Container();
+    m_container->setLayout(new DockLayout());
+    m_container->setPreferredHeight(50.0f);
+    m_container->setHorizontalAlignment(HorizontalAlignment::Fill);
+
+    Container* bottomBorder = new Container();
+    bottomBorder->setPreferredHeight(5.0f);
+    bottomBorder->setBackground(Color::DarkBlue);
+    bottomBorder->setHorizontalAlignment(HorizontalAlignment::Fill);
+    bottomBorder->setVerticalAlignment(VerticalAlignment::Bottom);
+
+    Container* innerContainer = new Container();
+    StackLayout *contentLayout = new StackLayout();
+    contentLayout->setOrientation(LayoutOrientation::LeftToRight);
+    innerContainer->setLayout(contentLayout);
+    innerContainer->setVerticalAlignment(VerticalAlignment::Top);
+    innerContainer->setHorizontalAlignment(HorizontalAlignment::Fill);
+    innerContainer->setLeftPadding(3.0f);
+    innerContainer->setPreferredHeight(45.0f);
+
+    TextStyle textStyle;
+    textStyle.setFontSizeValue(FontSize::Medium);
+    textStyle.setFontWeight(FontWeight::Bold);
+    textStyle.setColor(Color::LightGray);
+
+    m_itemLabel = Label::create().text("").textStyle(textStyle);
+    m_itemLabel->setVerticalAlignment(VerticalAlignment::Center);
+    m_itemLabel->setMultiline(false);
+    m_itemLabel->setLayoutProperties(StackLayoutProperties::create().spaceQuota(1));
+
+    innerContainer->add(m_itemLabel);
+    m_container->add(innerContainer);
+    m_container->add(bottomBorder);
+
+    setRoot(m_container);
+}
+void ChannelListHeader::updateItem(const QString text)
+{
+    m_itemLabel->setText(text);
+}
+void ChannelListHeader::select(bool select)
+{
+    Q_UNUSED(select);
+}
+void ChannelListHeader::reset(bool selected, bool activated)
+{
+    Q_UNUSED(selected);
+    Q_UNUSED(activated);
+}
+void ChannelListHeader::activate(bool activate)
+{
+    Q_UNUSED(activate);
+}
+
+/////////////////////// ChannelListItem //////////////////////////////////
+ChannelListItem::ChannelListItem(Container* parent)
+    : CustomControl(parent)
+{
+    m_container = new Container();
+    DockLayout *contentLayout = new DockLayout();
+    m_container->setLayout(contentLayout);
+    m_container->setHorizontalAlignment(HorizontalAlignment::Fill);
+    m_container->setPreferredHeight(70.0f);
+
+    Container* bottomBorder = new Container();
+    bottomBorder->setPreferredHeight(2.0f);
+    bottomBorder->setBackground(Color::DarkGray);
+    bottomBorder->setHorizontalAlignment(HorizontalAlignment::Fill);
+    bottomBorder->setVerticalAlignment(VerticalAlignment::Bottom);
+
+    Container* innerContainer = new Container();
+    StackLayout *innerLayout = new StackLayout();
+    innerLayout->setOrientation(LayoutOrientation::LeftToRight);
+    innerContainer->setLayout(innerLayout);
+    innerContainer->setVerticalAlignment(VerticalAlignment::Top);
+    innerContainer->setHorizontalAlignment(HorizontalAlignment::Fill);
+    innerContainer->setLeftPadding(35.0f);
+    innerContainer->setPreferredHeight(68.0f);
+
+    TextStyle style = SystemDefaults::TextStyles::titleText();
+    m_itemLabel = Label::create().text("").textStyle(style);
+    m_itemLabel->setVerticalAlignment(VerticalAlignment::Center);
+    m_itemLabel->setHorizontalAlignment(HorizontalAlignment::Fill);
+    m_itemLabel->setMultiline(false);
+    m_itemLabel->setLayoutProperties(StackLayoutProperties::create().spaceQuota(1));
+    innerContainer->add(m_itemLabel);
+
+    m_container->add(bottomBorder);
+    m_container->add(innerContainer);
+
+    setRoot(m_container);
+}
+void ChannelListItem::updateItem(const QString text)
+{
+    m_itemLabel->setText(text);
+}
+void ChannelListItem::select(bool select)
+{
+    Q_UNUSED(select);
+}
+void ChannelListItem::reset(bool selected, bool activated)
+{
+    Q_UNUSED(selected);
+    Q_UNUSED(activated);
+}
+void ChannelListItem::activate(bool activate)
+{
+    Q_UNUSED(activate);
 }

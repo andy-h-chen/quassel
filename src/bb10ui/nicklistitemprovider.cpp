@@ -4,7 +4,6 @@
 #include <bb/cascades/ScrollAnimation>
 #include <bb/cascades/ScrollPosition>
 
-#include "chatline.h"
 #include "chatlinemodel.h"
 #include "datamodeladapter.h"
 #include "networkmodel.h"

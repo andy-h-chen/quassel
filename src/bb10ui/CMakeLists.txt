@@ -9,7 +9,6 @@ set(SOURCES
     bb10uisettings.cpp
     bb10uistyle.cpp
     channellistviewfilter.cpp
-    chatline.cpp
     chatlinemodel.cpp
     chatlinemodelitem.cpp
     listitemprovider.cpp
@@ -24,10 +23,10 @@ set(MOC_HDRS
     bb10ui.h
     bb10uistyle.h
     channellistviewfilter.h
-    chatline.h
     chatlinemodel.h
     chatview.h
     datamodeladapter.h
+    listitemprovider.h
     nicklistitem.h
     simplesetuppage.h
     uiapplication.h
@@ -35,7 +34,6 @@ set(MOC_HDRS
 set(HEADERS
     bb10uisettings.h
     chatlinemodelitem.h
-    listitemprovider.h
     nicklistitemprovider.h)
 
 include_directories(${CMAKE_SOURCE_DIR}/src/common

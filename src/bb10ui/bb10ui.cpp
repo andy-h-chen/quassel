@@ -15,6 +15,7 @@
 #include <bb/cascades/Page>
 #include <bb/cascades/ScrollView>
 #include <bb/cascades/StackLayout>
+#include <bb/cascades/StackLayoutProperties>
 #include <bb/cascades/SystemDefaults>
 #include <bb/cascades/TextArea>
 #include <bb/cascades/TextField>
@@ -48,6 +49,7 @@
 #include "clientidentity.h"
 #include "clientignorelistmanager.h"
 #include "datamodeladapter.h"
+#include "listitemprovider.h"
 #include "simplesetuppage.h"
 #include "uimessageprocessor.h"
 
@@ -93,6 +95,9 @@ void Bb10Ui::init()
     DockLayout* chatListLayout = new DockLayout();
     container->setLayout(chatListLayout);
     m_channelListView = new ListView();
+    m_channelListView->setLayoutProperties(StackLayoutProperties::create().spaceQuota(1));
+    m_channelListView->setHorizontalAlignment(HorizontalAlignment::Fill);
+    m_channelListView->setListItemProvider(new ChannelListItemProvider());
     container->add(m_channelListView);
     m_chatListPage->setContent(container);
     connect(m_channelListView, SIGNAL(triggered(const QVariantList)), this, SLOT(onChannelListTriggered(const QVariantList)));
@@ -313,9 +318,15 @@ AbstractMessageProcessor *Bb10Ui::createMessageProcessor(QObject *parent)
 
 void Bb10Ui::onChannelListTriggered(const QVariantList index)
 {
+    // Headers are not clickable
+    if (index.length() < 2)
+        return;
     QModelIndex modelIndex = qobject_cast<DataModelAdapter*>(m_channelListView->dataModel())->getQModelIndex(index);
     BufferInfo bufferInfo = modelIndex.data(NetworkModel::BufferInfoRole).value<BufferInfo>();
     BufferId id = bufferInfo.bufferId();
+    if (!id.isValid())
+        return;
+
     QString bufferName = bufferInfo.bufferName();
     
     qDebug() << "xxxxx Bb10Ui::onChannelListTriggered bufferInfo = " << bufferInfo << " index = " << index << " modelIndex = " << modelIndex;
