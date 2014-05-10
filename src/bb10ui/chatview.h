@@ -30,12 +30,14 @@ public:
     ~ChatView();
 
     Page* getPage() { return m_page; }
+    MsgId getLastMsgId() const { return m_lastMsgId; }
 private slots:
-    void onKeyPressHandler(KeyEvent*);
+    void onKeyPressHandler(bb::cascades::KeyEvent*);
     void sendMessage();
     void showNicks();
     void onNickListTriggered(const QVariantList);
     void queryNick();
+    void onItemAdded(const QVariantList);
 private:
     Page* m_page;
     TextField* m_input;
@@ -43,6 +45,7 @@ private:
     ListView* m_chatListView;
     BufferId m_id;
     QString m_name;
+    MsgId m_lastMsgId;
 
     Page* m_nickListPage;
     ListView* m_nickListView;

@@ -35,6 +35,7 @@ ChatView::ChatView(BufferId id, QString& name)
     : QObject(0)
     , m_id(id)
     , m_name(name)
+    , m_lastMsgId(-1)
     , m_nickListPage(0)
     , m_nickListView(0)
 {
@@ -78,7 +79,7 @@ ChatView::ChatView(BufferId id, QString& name)
     mainContainer->add(inputContainer);
 
     KeyListener* inputKeyListener = KeyListener::create()
-        .onKeyPressed(this, SLOT(onKeyPressHandler(KeyEvent*)));
+        .onKeyPressed(this, SLOT(onKeyPressHandler(bb::cascades::KeyEvent*)));
     m_input->addKeyListener(inputKeyListener);
 
     ActionItem* nickList = ActionItem::create()
@@ -89,6 +90,8 @@ ChatView::ChatView(BufferId id, QString& name)
     ActionItem* backAction = ActionItem::create();
     connect(backAction, SIGNAL(triggered()), Bb10Ui::instance(), SLOT(navPanePop()));
     m_page->setPaneProperties(NavigationPaneProperties::create().backButton(backAction));
+
+    connect(dataModelAdapter, SIGNAL(itemAdded(QVariantList)), this, SLOT(onItemAdded(QVariantList)));
 }
 
 ChatView::~ChatView()
@@ -99,9 +102,11 @@ ChatView::~ChatView()
     delete m_page;
 }
 
-void ChatView::onKeyPressHandler(KeyEvent* event)
+void ChatView::onKeyPressHandler(bb::cascades::KeyEvent* event)
 {
     qDebug() << "xxxxx ChatView::onKeyEventHandler key = " << event->key();
+    if (event->key() == 13)
+        sendMessage();
 }
 
 void ChatView::sendMessage()
@@ -171,4 +176,10 @@ void ChatView::queryNick()
     QString nick = modelIndex.data(Qt::DisplayRole).value<QString>();
     qDebug() << "xxxxx ChatView::queryNick selected = " << index;
     Bb10Ui::instance()->switchToOrJoinChat(nick, true);
+}
+
+void ChatView::onItemAdded(const QVariantList indexPath)
+{
+    QModelIndex msgIndex = qobject_cast<DataModelAdapter*>(m_chatListView->dataModel())->getQModelIndex(indexPath, 2);
+    m_lastMsgId = msgIndex.data(MessageModel::MsgIdRole).value<MsgId>();
 }

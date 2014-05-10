@@ -74,7 +74,8 @@ private slots:
     void updateConnectedState(bool);
     void updateConnectionState(Network::ConnectionState);
     void showEditIdentityPage();
-    void navPanePopped(Page*);
+    void navPaneTopChanged(bb::cascades::Page*);
+    void onNavPanePopped(bb::cascades::Page*);
     void showJoinChannelDlg();
     void onPromptFinished(bb::system::SystemUiResult::Type);
     void pushToBeJoined(QVariantList);

@@ -95,7 +95,7 @@ QString DataModelAdapter::itemType(const QVariantList& indexPath)
 
 void DataModelAdapter::handleLayoutChanged()
 {
-    //qDebug() << "xxxxx DataModelAdapter::handleLayoutChanged";
+    qDebug() << "xxxxx DataModelAdapter::handleLayoutChanged";
     emit itemsChanged(bb::cascades::DataModelChangeType::AddRemove); 
 }
 

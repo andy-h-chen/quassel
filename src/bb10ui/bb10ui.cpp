@@ -34,6 +34,7 @@
 #include <bb/system/SystemUiPosition>
 #include <bb/system/SystemUiResult>
 
+#include <QItemSelectionModel>
 #include <QModelIndex>
 
 #include "bb10uisettings.h"
@@ -44,6 +45,7 @@
 #include "chatlinemodel.h"
 #include "chatview.h"
 #include "client.h"
+#include "clientbacklogmanager.h"
 #include "clientbufferviewconfig.h"
 #include "clientbufferviewmanager.h"
 #include "clientidentity.h"
@@ -121,13 +123,13 @@ void Bb10Ui::init()
 
     m_navPane->push(m_chatListPage);
 
-    connect(Application::instance(), SIGNAL(fullscreen()), this, SLOT(onFullscreen));
-    connect(Application::instance(), SIGNAL(thumbnail()), this, SLOT(onThumbnail));
+    connect(Application::instance(), SIGNAL(fullscreen()), this, SLOT(onFullscreen()));
+    connect(Application::instance(), SIGNAL(thumbnail()), this, SLOT(onThumbnail()));
 
     connect(Client::instance(), SIGNAL(networkCreated(NetworkId)), SLOT(clientNetworkCreated(NetworkId)));
     connect(Client::coreConnection(), SIGNAL(startCoreSetup(QVariantList)), SLOT(showCoreConfigWizard(QVariantList)));
     connect(Client::coreConnection(), SIGNAL(connectionErrorPopup(QString)), SLOT(handleCoreConnectionError(QString)));
-    connect(Client::coreConnection(), SIGNAL(coreSetupSuccess), SLOT(showCoreSetupSuccess));
+    connect(Client::coreConnection(), SIGNAL(coreSetupSuccess()), SLOT(showCoreSetupSuccess()));
     connect(Client::messageModel(), SIGNAL(rowsInserted(const QModelIndex &, int, int)), SLOT(messagesInserted(const QModelIndex &, int, int)));
     CoreConnection *conn = Client::coreConnection();
     if (!conn->connectToCore()) {
@@ -142,7 +144,11 @@ void Bb10Ui::init()
     m_invokeRequest.setMimeType("text/plain");
     m_invokeRequest.setTarget("quassel.irc.bb10");
 
-    connect(m_navPane, SIGNAL(topChanged(Page*)), this, SLOT(navPanePopped(Page*)));
+    bool success = connect(m_navPane, SIGNAL(topChanged(bb::cascades::Page*)), this, SLOT(navPaneTopChanged(bb::cascades::Page*)));
+    if (!success)
+        qDebug() << "xxxxx connect(m_navPane, SIGNAL(topChanged(bb::cascades::Page*)), this, SLOT(navPanePopped(bb::cascades::Page*))) failed";
+
+    success = connect(m_navPane, SIGNAL(popTransitionEnded(bb::cascades::Page)), this, SLOT(onNavPanePopped(bb::cascades::Page*)));
 }
 
 void Bb10Ui::clientNetworkCreated(NetworkId id)
@@ -297,9 +303,13 @@ void Bb10Ui::bufferViewConfigAdded(int bufferViewConfigId)
     Client::bufferModel()->sort(0);
     //m_channelListView->setDataModel(new DataModelAdapter(Client::bufferModel()));
     DataModelAdapter* model = new DataModelAdapter(new ChannelListViewFilter(Client::bufferModel(), config));
-    connect(config, SIGNAL(configChanged()), model, SIGNAL(handleLayoutChanged()));
+    connect(config, SIGNAL(configChanged()), model, SLOT(handleLayoutChanged()));
     m_channelListView->setDataModel(model);
     connect(model, SIGNAL(itemAdded(QVariantList)), this, SLOT(pushToBeJoined(QVariantList)));
+
+    QItemSelectionModel* selectionModel = Client::bufferModel()->standardSelectionModel();
+    connect(selectionModel, SIGNAL(currentRowChanged(const QModelIndex&, const QModelIndex&)), model, SLOT(handleBufferModelDataChanged(const QModelIndex&, const QModelIndex&)));
+    //connect(selectionModel, SIGNAL(currentRowChanged(const QModelIndex&, const QModelIndex&)), model, SLOT(handleLayoutChanged()));
 }
 
 void Bb10Ui::bufferViewConfigDeleted(int bufferViewConfigId)
@@ -337,7 +347,13 @@ void Bb10Ui::onChannelListTriggered(const QVariantList index)
     }
     m_currentBufferId = id;
     Client::bufferModel()->switchToBuffer(id);
+    Client::networkModel()->clearBufferActivity(id);
+    Client::setBufferLastSeenMsg(id, view->getLastMsgId());
+    Client::backlogManager()->checkForBacklog(id);
     navPanePush(view->getPage());
+
+    // ask channelListView to update the appearance
+    qobject_cast<DataModelAdapter*>(m_channelListView->dataModel())->handleBufferModelDataChanged(modelIndex, modelIndex);
 }
 
 void Bb10Ui::navPanePop()
@@ -355,17 +371,29 @@ void Bb10Ui::navPanePush(Page* page)
     m_navPane->push(page);
 }
 
-void Bb10Ui::navPanePopped(Page* page)
+void Bb10Ui::navPaneTopChanged(bb::cascades::Page* page)
 {
-    if (page == m_chatListPage)
+    if (page == m_chatListPage) {
+        BufferId prevBufferId = m_currentBufferId;
+        MsgId msgId = m_chatViews[prevBufferId]->getLastMsgId();
+        Client::setBufferLastSeenMsg(prevBufferId, msgId);
         m_currentBufferId = -1;
+        BufferId statusBufferId = Client::networkModel()->bufferId(m_networkInfo.networkId, "status buffer");
+        Client::bufferModel()->switchToBuffer(statusBufferId);
+        qDebug() << "xxxxx Bb10Ui::navPanePopped statusBufferId = " << statusBufferId << " current buffer = " << Client::bufferModel()->currentBuffer();
+    }
+}
+
+void Bb10Ui::onNavPanePopped(bb::cascades::Page* page)
+{
+    Q_UNUSED(page);
 }
 
 void Bb10Ui::messagesInserted(const QModelIndex &parent, int start, int end)
 {
     Q_UNUSED(parent);
     bool hasFocus = Application::instance()->isFullscreen();
-    //qDebug() << "xxxxx Bb10Ui::messagesInserted m_appState = " << m_appState << " Application::instance()->isFullScreen() = " << Application::instance()->isFullscreen();
+
     for (int i = start; i <= end; i++) {
         QModelIndex idx = Client::messageModel()->index(i, ChatLineModel::ContentsColumn);
         if (!idx.isValid()) {
@@ -389,14 +417,14 @@ void Bb10Ui::messagesInserted(const QModelIndex &parent, int start, int end)
             continue;
         }
 
+        // This is a hack.
+        // We need a way to notify ListView to update a single item.
+        QModelIndex source_index = Client::bufferModel()->mapFromSource(Client::networkModel()->bufferIndex(bufId));
+        qobject_cast<DataModelAdapter*>(m_channelListView->dataModel())->handleBufferModelDataChanged(source_index, source_index);
+
         // only show notifications for higlights or queries
-        if (bufType != BufferInfo::QueryBuffer && !(flags & Message::Highlight)) {
-            // This is a hack.
-            // We need a way to notify ListView to update a single item.
-            QModelIndex source_index = Client::bufferModel()->mapFromSource(Client::networkModel()->bufferIndex(bufId));
-            qobject_cast<DataModelAdapter*>(m_channelListView->dataModel())->handleBufferModelDataChanged(source_index, source_index);
+        if (bufType != BufferInfo::QueryBuffer && !(flags & Message::Highlight))
             continue;
-        }
 
         // and of course: don't notify for ignored messages
         if (Client::ignoreListManager() && Client::ignoreListManager()->match(idx.data(MessageModel::MessageRole).value<Message>(), Client::networkModel()->networkName(bufId))) {

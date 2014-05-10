@@ -246,9 +246,9 @@ QVariant Bb10UiStyle::channelListViewItemData(const QModelIndex &index, int role
         fmt.merge(_listItemFormats.value(BufferViewItem | UserAway));
         fmt.merge(_listItemFormats.value(fmtType | UserAway));
     }
-    qDebug() << "xxxxx Bb10UiStyle::channelListViewItemData fmt.font = " << fmt.font().styleName();
-    qDebug() << "xxxxx Bb10UiStyle::channelListViewItemData fmt.foreground = " << fmt.property(QTextFormat::ForegroundBrush).value<QBrush>().color().name();
-    qDebug() << "xxxxx Bb10UiStyle::channelListViewItemData fmt.background = " << fmt.property(QTextFormat::BackgroundBrush).value<QBrush>().color().name();
+    //qDebug() << "xxxxx Bb10UiStyle::channelListViewItemData fmt.font = " << fmt.font().styleName();
+    //qDebug() << "xxxxx Bb10UiStyle::channelListViewItemData fmt.foreground = " << fmt.property(QTextFormat::ForegroundBrush).value<QBrush>().color().name();
+    //qDebug() << "xxxxx Bb10UiStyle::channelListViewItemData fmt.background = " << fmt.property(QTextFormat::BackgroundBrush).value<QBrush>().color().name();
 
     return itemData(role, fmt);
 }
@@ -259,9 +259,9 @@ QVariant Bb10UiStyle::itemData(int role, const QTextCharFormat &format) const
     case Qt::FontRole:
         return format.font();
     case Qt::ForegroundRole:
-        return format.property(QTextFormat::ForegroundBrush).value<QBrush>().color().name();
+        return format.property(QTextFormat::ForegroundBrush).value<QBrush>().color().rgba();
     case Qt::BackgroundRole:
-        return format.property(QTextFormat::BackgroundBrush).value<QBrush>().color().name();
+        return format.property(QTextFormat::BackgroundBrush).value<QBrush>().color().rgba();
     default:
         return QVariant();
     }
@@ -277,7 +277,7 @@ void Bb10UiStyle::loadStyleSheet()
     UiStyleSettings s;
 
     QString styleSheet;
-    styleSheet += loadStyleSheet("file:///" + Quassel::findDataFilePath("stylesheets/default.qss"));
+    styleSheet += loadStyleSheet("file:///" + Quassel::findDataFilePath("stylesheets/jussi01-darktheme.qss"));
     styleSheet += loadStyleSheet("file:///" + Quassel::configDirPath() + "settings.qss");
     if (s.value("UseCustomStyleSheet", false).toBool())
         styleSheet += loadStyleSheet("file:///" + s.value("CustomStyleSheetPath").toString(), true);
@@ -285,16 +285,18 @@ void Bb10UiStyle::loadStyleSheet()
 
     if (!styleSheet.isEmpty()) {
         QssParser parser;
+
         parser.processStyleSheet(styleSheet);
+
         QApplication::setPalette(parser.palette());
 
         _uiStylePalette = parser.uiStylePalette();
         _formats = parser.formats();
         _listItemFormats = parser.listItemFormats();
-
         styleSheet = styleSheet.trimmed();
-        if (!styleSheet.isEmpty())
-            qApp->setStyleSheet(styleSheet);  // pass the remaining sections to the application
+        // this is for qApp, not needed for bb10
+        //if (!styleSheet.isEmpty())
+            //qApp->setStyleSheet(styleSheet);  // pass the remaining sections to the application
     }
 
     emit changed();
@@ -321,6 +323,5 @@ QString Bb10UiStyle::loadStyleSheet(const QString &styleSheet, bool shouldExist)
             return QString();
         }
     }
-    qDebug() << "xxxxx Bb10UiStyle::loadStyleSheet " << ss;
     return ss;
 }

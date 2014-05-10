@@ -11,7 +11,10 @@ MonolithicApplication::MonolithicApplication(int argc, char **argv)
 {
     _internal = new CoreApplicationInternal(); // needed for parser options
     disableCrashhandler();
-    setDataDirPaths(findDataDirPaths());
+    QStringList paths;
+    paths << findDataDirPaths();
+    paths << QCoreApplication::applicationDirPath() + "/apps/quassel/";
+    setDataDirPaths(paths);
     setRunMode(Quassel::Monolithic);
     qDebug() << "xxxxx MonolithicApplication constructor";
 }

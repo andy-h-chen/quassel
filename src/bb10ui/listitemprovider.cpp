@@ -8,6 +8,7 @@
 #include <bb/cascades/StackLayout>
 #include <bb/cascades/StackLayoutProperties>
 #include <bb/cascades/SystemDefaults>
+#include <bb/cascades/TextFormat>
 #include <bb/cascades/TextStyle>
 #include <bb/cascades/ListView>
 #include <bb/cascades/ScrollAnimation>
@@ -134,7 +135,12 @@ void ChannelListItemProvider::updateItem(ListView* list, VisualNode *listItem, c
         header->updateItem(data.toString());
     } else {
         ChannelListItem* item = qobject_cast<ChannelListItem*>(listItem);
-        item->updateItem(data.toString());
+        QModelIndex itemModelIndex = qobject_cast<DataModelAdapter*>(list->dataModel())->getQModelIndex(indexPath, 0);
+        QString name = itemModelIndex.data(ChatLineModel::DisplayRole).toString();
+        uint foreground = itemModelIndex.data(Qt::ForegroundRole).toUInt();
+        //QString text = "<html><span style='font-family:Courier New; font-size:18pt; color:" + foreground + ";'>" + name + "</span></html>";
+        //qDebug() << "xxxxx ChannelListItemProvider::updateItem " << text << foreground;
+        item->updateItem(name, foreground);
     }
 }
 
@@ -208,7 +214,7 @@ ChannelListItem::ChannelListItem(Container* parent)
 
     Container* bottomBorder = new Container();
     bottomBorder->setPreferredHeight(2.0f);
-    bottomBorder->setBackground(Color::DarkGray);
+    bottomBorder->setBackground(Color::fromARGB(0xff323232));
     bottomBorder->setHorizontalAlignment(HorizontalAlignment::Fill);
     bottomBorder->setVerticalAlignment(VerticalAlignment::Bottom);
 
@@ -218,7 +224,7 @@ ChannelListItem::ChannelListItem(Container* parent)
     innerContainer->setLayout(innerLayout);
     innerContainer->setVerticalAlignment(VerticalAlignment::Top);
     innerContainer->setHorizontalAlignment(HorizontalAlignment::Fill);
-    innerContainer->setLeftPadding(35.0f);
+    innerContainer->setLeftPadding(55.0f);
     innerContainer->setPreferredHeight(68.0f);
 
     TextStyle style = SystemDefaults::TextStyles::titleText();
@@ -234,9 +240,10 @@ ChannelListItem::ChannelListItem(Container* parent)
 
     setRoot(m_container);
 }
-void ChannelListItem::updateItem(const QString text)
+void ChannelListItem::updateItem(const QString text, const uint color)
 {
     m_itemLabel->setText(text);
+    m_itemLabel->textStyle()->setColor(Color::fromARGB(color));
 }
 void ChannelListItem::select(bool select)
 {

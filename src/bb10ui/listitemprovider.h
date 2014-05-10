@@ -72,7 +72,7 @@ class ChannelListItem : public bb::cascades::CustomControl, public ListItemListe
     Q_OBJECT
 public:
     ChannelListItem(Container* parent = 0);
-    void updateItem(const QString text);
+    void updateItem(const QString text, const uint);
     void select(bool select);
     void reset(bool selected, bool activated);
     void activate(bool activate);
