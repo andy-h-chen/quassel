@@ -1,6 +1,7 @@
 #include "bb10ui.h"
 
 #include <bb/cascades/ActionItem>
+#include <bb/cascades/ActionSet>
 #include <bb/cascades/Application>
 #include <bb/cascades/Button>
 #include <bb/cascades/Container>
@@ -144,11 +145,9 @@ void Bb10Ui::init()
     m_invokeRequest.setMimeType("text/plain");
     m_invokeRequest.setTarget("quassel.irc.bb10");
 
-    bool success = connect(m_navPane, SIGNAL(topChanged(bb::cascades::Page*)), this, SLOT(navPaneTopChanged(bb::cascades::Page*)));
-    if (!success)
-        qDebug() << "xxxxx connect(m_navPane, SIGNAL(topChanged(bb::cascades::Page*)), this, SLOT(navPanePopped(bb::cascades::Page*))) failed";
+    connect(m_navPane, SIGNAL(topChanged(bb::cascades::Page*)), this, SLOT(navPaneTopChanged(bb::cascades::Page*)));
 
-    success = connect(m_navPane, SIGNAL(popTransitionEnded(bb::cascades::Page)), this, SLOT(onNavPanePopped(bb::cascades::Page*)));
+    connect(m_navPane, SIGNAL(popTransitionEnded(bb::cascades::Page)), this, SLOT(onNavPanePopped(bb::cascades::Page*)));
 }
 
 void Bb10Ui::clientNetworkCreated(NetworkId id)
@@ -175,7 +174,6 @@ MessageModel *Bb10Ui::createMessageModel(QObject *parent)
 void Bb10Ui::handleCoreConnectionError(const QString &error)
 {
     qDebug() << "xxxxx Core Connection Error " << error;
-    //QMessageBox::critical(this, tr("Core Connection Error"), error, QMessageBox::Ok);
 }
 
 void Bb10Ui::connectedToCore()
@@ -215,12 +213,10 @@ void Bb10Ui::showNewIdentityPage()
     }
 
     QStringList defaultNets = Network::presetNetworks(true);
-    qDebug() << "xxxxx Bb10Ui::showNewIdentityPage defaultNets.isEmpty = " << defaultNets.isEmpty();
     if (!defaultNets.isEmpty()) {
         NetworkInfo info = Network::networkInfoFromPreset(defaultNets[0]);
         if (!info.networkName.isEmpty()) {
             m_networkInfo = info;
-            qDebug() << "xxxxx Bb10Ui::showNewIdentityPage" << info.networkName << info.serverList.size();
             m_defaultChannels = Network::presetDefaultChannels(defaultNets[0]);
         }
     }
@@ -257,7 +253,6 @@ void Bb10Ui::showEditIdentityPage()
 
 void Bb10Ui::saveIdentityAndServer()
 {
-    qDebug() << "xxxxx Bb10Ui::saveIdentityAndServer";
     m_simpleSetupPage->saveToIdentity(m_identity);
     if (m_identity->id().isValid()) {
         Client::updateIdentity(m_identity->id(), m_identity->toVariantMap());
@@ -282,7 +277,6 @@ void Bb10Ui::identityReady(IdentityId id)
 
 void Bb10Ui::networkReady(NetworkId id)
 {
-    qDebug() << "xxxxx Bb10Ui::networkReady " << id;
     disconnect(Client::instance(), SIGNAL(networkCreated(NetworkId)), this, SLOT(networkReady(NetworkId)));
     const Network *net = Client::network(id);
     m_networkInfo = net->networkInfo();
@@ -297,19 +291,16 @@ void Bb10Ui::networkReady(NetworkId id)
 
 void Bb10Ui::bufferViewConfigAdded(int bufferViewConfigId)
 {
-    qDebug() << "xxxxx Bb10Ui::bufferViewConfigAdde id = " << bufferViewConfigId;
     ClientBufferViewConfig *config = Client::bufferViewManager()->clientBufferViewConfig(bufferViewConfigId);
     qDebug() << "xxxxx Bb10Ui::bufferViewConfigAdde config->networkId = " << config->networkId().toInt() << " bufferViewName = " << config->bufferViewName() << "bufferList = " << config->bufferList().size() << config->bufferList();
     Client::bufferModel()->sort(0);
-    //m_channelListView->setDataModel(new DataModelAdapter(Client::bufferModel()));
     DataModelAdapter* model = new DataModelAdapter(new ChannelListViewFilter(Client::bufferModel(), config));
     connect(config, SIGNAL(configChanged()), model, SLOT(handleLayoutChanged()));
     m_channelListView->setDataModel(model);
-    connect(model, SIGNAL(itemAdded(QVariantList)), this, SLOT(pushToBeJoined(QVariantList)));
+    connect(model, SIGNAL(itemAdded(QVariantList)), this, SLOT(onChannelAdded(QVariantList)));
 
     QItemSelectionModel* selectionModel = Client::bufferModel()->standardSelectionModel();
     connect(selectionModel, SIGNAL(currentRowChanged(const QModelIndex&, const QModelIndex&)), model, SLOT(handleBufferModelDataChanged(const QModelIndex&, const QModelIndex&)));
-    //connect(selectionModel, SIGNAL(currentRowChanged(const QModelIndex&, const QModelIndex&)), model, SLOT(handleLayoutChanged()));
 }
 
 void Bb10Ui::bufferViewConfigDeleted(int bufferViewConfigId)
@@ -378,9 +369,9 @@ void Bb10Ui::navPaneTopChanged(bb::cascades::Page* page)
         MsgId msgId = m_chatViews[prevBufferId]->getLastMsgId();
         Client::setBufferLastSeenMsg(prevBufferId, msgId);
         m_currentBufferId = -1;
+        // Always set StatusBuffer as current buffer if nothing is on the top
         BufferId statusBufferId = Client::networkModel()->bufferId(m_networkInfo.networkId, "status buffer");
         Client::bufferModel()->switchToBuffer(statusBufferId);
-        qDebug() << "xxxxx Bb10Ui::navPanePopped statusBufferId = " << statusBufferId << " current buffer = " << Client::bufferModel()->currentBuffer();
     }
 }
 
@@ -566,7 +557,7 @@ void Bb10Ui::switchToOrJoinChat(QString& name, bool isQuery)
     Client::userInput(BufferInfo::fakeStatusBuffer(m_networkInfo.networkId), QString(isQuery ? "/QUERY %1" : "/JOIN %1").arg(name));
 }
 
-void Bb10Ui::pushToBeJoined(QVariantList index)
+void Bb10Ui::onChannelAdded(QVariantList index)
 {
     QModelIndex modelIndex = qobject_cast<DataModelAdapter*>(m_channelListView->dataModel())->getQModelIndex(index);
     BufferInfo bufferInfo = modelIndex.data(NetworkModel::BufferInfoRole).value<BufferInfo>();
@@ -575,5 +566,86 @@ void Bb10Ui::pushToBeJoined(QVariantList index)
             navPanePop();
         onChannelListTriggered(index);
     }
+    Client::bufferModel()->sort(0);
 }
 
+ActionSet* Bb10Ui::generateActionSetForBuffer(BufferId bufId)
+{
+    //const Network* net = Client::network(m_networkInfo.networkId);
+    
+    ActionSet* actions = ActionSet::create();
+    BufferInfo::Type itemType = Client::networkModel()->bufferType(bufId);
+    switch (itemType) {
+    case BufferInfo::StatusBuffer:
+    {
+        ActionItem* listChannels = ActionItem::create().title("List Channels");
+        connect(listChannels, SIGNAL(triggered()), this, SLOT(listChannels()));
+        actions->add(listChannels);
+        break;
+    }
+    case BufferInfo::ChannelBuffer:
+    {
+        ActionItem* join = ActionItem::create().title("Join");
+        connect(join, SIGNAL(triggered()), this, SLOT(joinChannel()));
+        actions->add(join);
+        ActionItem* part = ActionItem::create().title("Part");
+        connect(part, SIGNAL(triggered()), this, SLOT(partChannel()));
+        actions->add(part);
+        ActionItem* del = ActionItem::create().title("Delete");
+        connect(del, SIGNAL(triggered()), this, SLOT(deleteBuffer()));
+        actions->add(del);
+        break;
+    }
+    case BufferInfo::QueryBuffer:
+    {
+        ActionItem* del = ActionItem::create().title("Delete");
+        connect(del, SIGNAL(triggered()), this, SLOT(deleteBuffer()));
+        actions->add(del);
+        break;
+    }
+    default:
+        delete actions;
+        return 0;
+    }
+    return actions->count() ? actions : 0;
+}
+
+void Bb10Ui::deleteBuffer()
+{
+    QVariantList index = m_channelListView->selected();
+    if (index.length() < 2)
+        return;
+
+    QModelIndex modelIndex = static_cast<DataModelAdapter*>(m_channelListView->dataModel())->getQModelIndex(index);
+    BufferId bufId = modelIndex.data(NetworkModel::BufferIdRole).value<BufferId>();
+    Client::removeBuffer(bufId);
+}
+
+void Bb10Ui::joinChannel()
+{
+    QVariantList index = m_channelListView->selected();
+    if (index.length() < 2)
+        return;
+
+    QModelIndex modelIndex = static_cast<DataModelAdapter*>(m_channelListView->dataModel())->getQModelIndex(index);
+    BufferInfo bufInfo = modelIndex.data(NetworkModel::BufferInfoRole).value<BufferInfo>();
+    QString bufferName = bufInfo.bufferName();
+    switchToOrJoinChat(bufferName, false);
+}
+
+void Bb10Ui::listChannels()
+{
+    // FIXME: implement this
+}
+
+void Bb10Ui::partChannel()
+{
+    QVariantList index = m_channelListView->selected();
+    if (index.length() < 2)
+        return;
+
+    QModelIndex modelIndex = static_cast<DataModelAdapter*>(m_channelListView->dataModel())->getQModelIndex(index);
+    BufferInfo bufInfo = modelIndex.data(NetworkModel::BufferInfoRole).value<BufferInfo>();
+    QString reason = Client::identity(Client::network(bufInfo.networkId())->identity())->partReason();
+    Client::userInput(bufInfo, QString("/PART %1").arg(reason));
+}

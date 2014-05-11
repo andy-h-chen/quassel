@@ -1,5 +1,7 @@
 #include "listitemprovider.h"
 
+#include <bb/cascades/ActionItem>
+#include <bb/cascades/ActionSet>
 #include <bb/cascades/Color>
 #include <bb/cascades/Container>
 #include <bb/cascades/DockLayout>
@@ -14,9 +16,11 @@
 #include <bb/cascades/ScrollAnimation>
 #include <bb/cascades/ScrollPosition>
 
+#include "bb10ui.h"
 #include "chatlinemodel.h"
 #include "datamodeladapter.h"
 #include "message.h"
+#include "networkmodel.h"
 
 using namespace bb::cascades;
 
@@ -141,6 +145,15 @@ void ChannelListItemProvider::updateItem(ListView* list, VisualNode *listItem, c
         //QString text = "<html><span style='font-family:Courier New; font-size:18pt; color:" + foreground + ";'>" + name + "</span></html>";
         //qDebug() << "xxxxx ChannelListItemProvider::updateItem " << text << foreground;
         item->updateItem(name, foreground);
+
+        if (item->actionSetCount())
+            return;
+
+        BufferId bufId = itemModelIndex.data(NetworkModel::BufferIdRole).value<BufferId>();
+        ActionSet* actions = Bb10Ui::instance()->generateActionSetForBuffer(bufId);
+        if (actions)
+            item->addActionSet(actions);
+        qDebug() << "xxxxx ChannelListItemProvider::updateItem " << name << actions->count();
     }
 }
 
@@ -218,14 +231,14 @@ ChannelListItem::ChannelListItem(Container* parent)
     bottomBorder->setHorizontalAlignment(HorizontalAlignment::Fill);
     bottomBorder->setVerticalAlignment(VerticalAlignment::Bottom);
 
-    Container* innerContainer = new Container();
+    m_innerContainer = new Container();
     StackLayout *innerLayout = new StackLayout();
     innerLayout->setOrientation(LayoutOrientation::LeftToRight);
-    innerContainer->setLayout(innerLayout);
-    innerContainer->setVerticalAlignment(VerticalAlignment::Top);
-    innerContainer->setHorizontalAlignment(HorizontalAlignment::Fill);
-    innerContainer->setLeftPadding(55.0f);
-    innerContainer->setPreferredHeight(68.0f);
+    m_innerContainer->setLayout(innerLayout);
+    m_innerContainer->setVerticalAlignment(VerticalAlignment::Top);
+    m_innerContainer->setHorizontalAlignment(HorizontalAlignment::Fill);
+    m_innerContainer->setLeftPadding(55.0f);
+    m_innerContainer->setPreferredHeight(68.0f);
 
     TextStyle style = SystemDefaults::TextStyles::titleText();
     m_itemLabel = Label::create().text("").textStyle(style);
@@ -233,10 +246,10 @@ ChannelListItem::ChannelListItem(Container* parent)
     m_itemLabel->setHorizontalAlignment(HorizontalAlignment::Fill);
     m_itemLabel->setMultiline(false);
     m_itemLabel->setLayoutProperties(StackLayoutProperties::create().spaceQuota(1));
-    innerContainer->add(m_itemLabel);
+    m_innerContainer->add(m_itemLabel);
 
     m_container->add(bottomBorder);
-    m_container->add(innerContainer);
+    m_container->add(m_innerContainer);
 
     setRoot(m_container);
 }
@@ -247,14 +260,21 @@ void ChannelListItem::updateItem(const QString text, const uint color)
 }
 void ChannelListItem::select(bool select)
 {
-    Q_UNUSED(select);
+    if (select)
+        m_innerContainer->setBackground(Color::fromARGB(0xff323232));
+    else
+        m_innerContainer->resetBackground();
 }
 void ChannelListItem::reset(bool selected, bool activated)
 {
     Q_UNUSED(selected);
     Q_UNUSED(activated);
+    m_innerContainer->resetBackground();
 }
 void ChannelListItem::activate(bool activate)
 {
-    Q_UNUSED(activate);
+    if (activate)
+        m_innerContainer->setBackground(Color::fromARGB(0xff323232));
+    else
+        m_innerContainer->resetBackground();
 }

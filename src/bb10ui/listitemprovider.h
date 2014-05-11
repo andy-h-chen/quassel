@@ -79,6 +79,7 @@ public:
 private:
     Label* m_itemLabel;
     Container* m_container;
+    Container* m_innerContainer;
 };
 
 #endif // ifndef _LISTITEMPROVIDER_H_

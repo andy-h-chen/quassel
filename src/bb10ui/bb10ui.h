@@ -22,6 +22,7 @@ namespace bb
 {
     namespace cascades
     {
+        class ActionSet;
         class ActionItem;
         class Container;
         class ListView;
@@ -47,6 +48,7 @@ public:
 
     inline static Bb10UiStyle *uiStyle();
     void switchToOrJoinChat(QString&, bool);
+    ActionSet* generateActionSetForBuffer(BufferId);
 
 protected slots:
     void connectedToCore();
@@ -78,7 +80,12 @@ private slots:
     void onNavPanePopped(bb::cascades::Page*);
     void showJoinChannelDlg();
     void onPromptFinished(bb::system::SystemUiResult::Type);
-    void pushToBeJoined(QVariantList);
+    void onChannelAdded(QVariantList);
+    // Channel actions
+    void deleteBuffer();
+    void joinChannel();
+    void partChannel();
+    void listChannels();
 
 private:
     enum AppState {
