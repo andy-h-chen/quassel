@@ -365,6 +365,9 @@ void Bb10Ui::navPanePush(Page* page)
 void Bb10Ui::navPaneTopChanged(bb::cascades::Page* page)
 {
     if (page == m_chatListPage) {
+        if (m_currentBufferId == -1)
+            return;
+
         BufferId prevBufferId = m_currentBufferId;
         MsgId msgId = m_chatViews[prevBufferId]->getLastMsgId();
         Client::setBufferLastSeenMsg(prevBufferId, msgId);
