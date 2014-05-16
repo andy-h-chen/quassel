@@ -21,9 +21,9 @@
 #include <QFontMetrics>
 #include <QTextBoundaryFinder>
 
+#include "bb10ui.h"
 #include "chatlinemodelitem.h"
 #include "chatlinemodel.h"
-#include "bb10uistyle.h"
 
 // This Struct is taken from Harfbuzz. We use it only to calc it's size.
 // we use a shared memory region so we do not have to malloc a buffer area for every line
@@ -97,12 +97,12 @@ QVariant ChatLineModelItem::timestampData(int role) const
     case ChatLineModel::EditRole:
         return _styledMsg.timestamp();
     case ChatLineModel::BackgroundRole:
-        return backgroundBrush(UiStyle::Timestamp);
+        return backgroundBrush(Bb10UiStyle::Timestamp);
     case ChatLineModel::SelectedBackgroundRole:
-        return backgroundBrush(UiStyle::Timestamp, true);
+        return backgroundBrush(Bb10UiStyle::Timestamp, true);
     case ChatLineModel::FormatRole:
-        return QVariant::fromValue<UiStyle::FormatList>(UiStyle::FormatList()
-                                                        << qMakePair((quint16)0, (quint32) UiStyle::formatType(_styledMsg.type()) | UiStyle::Timestamp));
+        return QVariant::fromValue<Bb10UiStyle::FormatList>(Bb10UiStyle::FormatList()
+                                                        << qMakePair((quint16)0, (quint32) Bb10UiStyle::formatType(_styledMsg.type()) | Bb10UiStyle::Timestamp));
     }
     return QVariant();
 }
@@ -116,12 +116,12 @@ QVariant ChatLineModelItem::senderData(int role) const
     case ChatLineModel::EditRole:
         return _styledMsg.plainSender();
     case ChatLineModel::BackgroundRole:
-        return backgroundBrush(UiStyle::Sender);
+        return backgroundBrush(Bb10UiStyle::Sender);
     case ChatLineModel::SelectedBackgroundRole:
-        return backgroundBrush(UiStyle::Sender, true);
+        return backgroundBrush(Bb10UiStyle::Sender, true);
     case ChatLineModel::FormatRole:
-        return QVariant::fromValue<UiStyle::FormatList>(UiStyle::FormatList()
-                                                        << qMakePair((quint16)0, (quint32) UiStyle::formatType(_styledMsg.type()) | UiStyle::Sender));
+        return QVariant::fromValue<Bb10UiStyle::FormatList>(Bb10UiStyle::FormatList()
+                                                        << qMakePair((quint16)0, (quint32) Bb10UiStyle::formatType(_styledMsg.type()) | Bb10UiStyle::Sender));
     }
     return QVariant();
 }
@@ -134,11 +134,13 @@ QVariant ChatLineModelItem::contentsData(int role) const
     case ChatLineModel::EditRole:
         return _styledMsg.plainContents();
     case ChatLineModel::BackgroundRole:
-        return backgroundBrush(UiStyle::Contents);
+        return backgroundBrush(Bb10UiStyle::Contents);
     case ChatLineModel::SelectedBackgroundRole:
-        return backgroundBrush(UiStyle::Contents, true);
+        return backgroundBrush(Bb10UiStyle::Contents, true);
     case ChatLineModel::FormatRole:
-        return QVariant::fromValue<UiStyle::FormatList>(_styledMsg.contentsFormatList());
+        return QVariant::fromValue<Bb10UiStyle::FormatList>(_styledMsg.contentsFormatList());
+    case ChatLineModel::FormatedHtmlContentRole:
+        return _styledMsg.formatedHtmlContents();
     case ChatLineModel::WrapListRole:
         if (_wrapList.isEmpty())
             computeWrapList();
@@ -152,18 +154,18 @@ quint32 ChatLineModelItem::messageLabel() const
 {
     quint32 label = _styledMsg.senderHash() << 16;
     if (_styledMsg.flags() & Message::Self)
-        label |= UiStyle::OwnMsg;
+        label |= Bb10UiStyle::OwnMsg;
     if (_styledMsg.flags() & Message::Highlight)
-        label |= UiStyle::Highlight;
+        label |= Bb10UiStyle::Highlight;
     return label;
 }
 
 
-QVariant ChatLineModelItem::backgroundBrush(UiStyle::FormatType subelement, bool selected) const
+QVariant ChatLineModelItem::backgroundBrush(Bb10UiStyle::FormatType subelement, bool selected) const
 {
-    //QTextCharFormat fmt = QtUi::style()->format(UiStyle::formatType(_styledMsg.type()) | subelement, messageLabel() | (selected ? UiStyle::Selected : 0));
-    //if (fmt.hasProperty(QTextFormat::BackgroundBrush))
-    //    return QVariant::fromValue<QBrush>(fmt.background());
+    QTextCharFormat fmt = Bb10Ui::uiStyle()->format(Bb10UiStyle::formatType(_styledMsg.type()) | subelement, messageLabel() | (selected ? Bb10UiStyle::Selected : 0));
+    if (fmt.hasProperty(QTextFormat::BackgroundBrush))
+        return QVariant::fromValue<QBrush>(fmt.background());
     return QVariant();
 }
 

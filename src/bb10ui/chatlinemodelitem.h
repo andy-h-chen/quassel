@@ -23,7 +23,7 @@
 
 #include "messagemodel.h"
 
-#include "uistyle.h"
+#include "bb10uistyle.h"
 
 class ChatLineModelItem : public MessageModelItem
 {
@@ -57,13 +57,13 @@ private:
     QVariant senderData(int role) const;
     QVariant contentsData(int role) const;
 
-    QVariant backgroundBrush(UiStyle::FormatType subelement, bool selected = false) const;
+    QVariant backgroundBrush(Bb10UiStyle::FormatType subelement, bool selected = false) const;
     quint32 messageLabel() const;
 
     void computeWrapList() const;
 
     mutable WrapList _wrapList;
-    UiStyle::StyledMessage _styledMsg;
+    Bb10UiStyle::StyledMessage _styledMsg;
 
     static unsigned char *TextBoundaryFinderBuffer;
     static int TextBoundaryFinderBufferSize;

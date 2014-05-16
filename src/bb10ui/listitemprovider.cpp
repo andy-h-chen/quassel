@@ -16,7 +16,10 @@
 #include <bb/cascades/ScrollAnimation>
 #include <bb/cascades/ScrollPosition>
 
+#include <QTextCharFormat>
+
 #include "bb10ui.h"
+#include "bb10uistyle.h"
 #include "chatlinemodel.h"
 #include "datamodeladapter.h"
 #include "message.h"
@@ -47,19 +50,25 @@ void ChatLineProvider::updateItem(ListView* list, bb::cascades::VisualNode *list
 
     QModelIndex msgIndex = qobject_cast<DataModelAdapter*>(list->dataModel())->getQModelIndex(indexPath, 2);
 
-    int flags = msgIndex.data(MessageModel::FlagsRole).value<int>();
+    //int flags = msgIndex.data(MessageModel::FlagsRole).value<int>();
 
     QModelIndex contentsModelIndex = qobject_cast<DataModelAdapter*>(list->dataModel())->getQModelIndex(indexPath, (int)ChatLineModel::ContentsColumn);
     QModelIndex senderModelIndex = qobject_cast<DataModelAdapter*>(list->dataModel())->getQModelIndex(indexPath, (int)ChatLineModel::SenderColumn);
     ChatLine *line = qobject_cast<ChatLine*>(listItem);
     QString sender = senderModelIndex.data(ChatLineModel::DisplayRole).toString();
-    QString contents = contentsModelIndex.data(ChatLineModel::DisplayRole).toString();
-    contents.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;");
+    Bb10UiStyle::MessageLabel label = (Bb10UiStyle::MessageLabel)senderModelIndex.data(ChatLineModel::MsgLabelRole).toInt();
+    QTextCharFormat fmt = Bb10Ui::uiStyle()->format(senderModelIndex.data(ChatLineModel::FormatRole).value<Bb10UiStyle::FormatList>().at(0).second, label);
+    QString senderForeground = fmt.foreground().color().name();
+    QString senderBackground = fmt.background().color().name();
+
+    QString contents = contentsModelIndex.data(ChatLineModel::FormatedHtmlContentRole).toString();
+    QString contentsBackground = contentsModelIndex.data(ChatLineModel::BackgroundRole).value<QBrush>().color().name();
+    //contents.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;");
     sender.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;");
-    QString msg = "<html><span style='font-family:Courier New; color:orange'>" + sender + "</span> <span style='font-family:Courier New;'>" + contents + "</span></html>";
+    QString msg = "<html><span style='font-family:Courier New; color:" + senderForeground + "; background-color:" + senderBackground + ";'>" + sender + "</span> <span style='font-family:Courier New; background-color:" + contentsBackground + "'>" + contents + "</span></html>";
     line->updateItem(msg);
-    if (flags & Message::Highlight)
-        line->setHighlight(true);
+    //if (flags & Message::Highlight)
+    //    line->setHighlight(true);
     if (m_scrollToNewLine) {
         list->scrollToPosition(ScrollPosition::End, ScrollAnimation::Default);
         m_scrollToNewLine = false;
