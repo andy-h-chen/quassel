@@ -58,7 +58,7 @@ class ChannelListHeader : public bb::cascades::CustomControl, public ListItemLis
     Q_OBJECT
 public:
     ChannelListHeader(Container* parent = 0);
-    void updateItem(const QString text);
+    void updateItem(const QString text, const uint);
     void select(bool select);
     void reset(bool selected, bool activated);
     void activate(bool activate);

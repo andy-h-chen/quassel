@@ -50,10 +50,9 @@ void ChatLineProvider::updateItem(ListView* list, bb::cascades::VisualNode *list
 
     QModelIndex msgIndex = qobject_cast<DataModelAdapter*>(list->dataModel())->getQModelIndex(indexPath, 2);
 
-    //int flags = msgIndex.data(MessageModel::FlagsRole).value<int>();
-
     QModelIndex contentsModelIndex = qobject_cast<DataModelAdapter*>(list->dataModel())->getQModelIndex(indexPath, (int)ChatLineModel::ContentsColumn);
     QModelIndex senderModelIndex = qobject_cast<DataModelAdapter*>(list->dataModel())->getQModelIndex(indexPath, (int)ChatLineModel::SenderColumn);
+    QModelIndex timeModelIndex = qobject_cast<DataModelAdapter*>(list->dataModel())->getQModelIndex(indexPath, (int)ChatLineModel::TimestampColumn);
     ChatLine *line = qobject_cast<ChatLine*>(listItem);
     QString sender = senderModelIndex.data(ChatLineModel::DisplayRole).toString();
     Bb10UiStyle::MessageLabel label = (Bb10UiStyle::MessageLabel)senderModelIndex.data(ChatLineModel::MsgLabelRole).toInt();
@@ -61,14 +60,17 @@ void ChatLineProvider::updateItem(ListView* list, bb::cascades::VisualNode *list
     QString senderForeground = fmt.foreground().color().name();
     QString senderBackground = fmt.background().color().name();
 
+    QString timestamp = timeModelIndex.data(ChatLineModel::DisplayRole).toString();
+    QTextCharFormat timeFmt = Bb10Ui::uiStyle()->format(timeModelIndex.data(ChatLineModel::FormatRole).value<Bb10UiStyle::FormatList>().at(0).second, 0);
+    QString timeForeground = timeFmt.foreground().color().name();
+    QString timeBackground = timeFmt.background().color().name();
+    //qDebug() << "xxxxx timestamp =" << timestamp << timeForeground << timeBackground;
     QString contents = contentsModelIndex.data(ChatLineModel::FormatedHtmlContentRole).toString();
     QString contentsBackground = contentsModelIndex.data(ChatLineModel::BackgroundRole).value<QBrush>().color().name();
     //contents.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;");
     sender.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;");
-    QString msg = "<html><span style='font-family:Courier New; color:" + senderForeground + "; background-color:" + senderBackground + ";'>" + sender + "</span> <span style='font-family:Courier New; background-color:" + contentsBackground + "'>" + contents + "</span></html>";
+    QString msg = "<html><span style='font-family:Courier New; color:" + timeForeground + "; background-color:" + timeBackground + ";'>" + timestamp + "</span><span style='font-family:Courier New; color:" + senderForeground + "; background-color:" + senderBackground + ";'>" + sender + "</span> <span style='font-family:Courier New; background-color:" + contentsBackground + "'>" + contents + "</span></html>";
     line->updateItem(msg);
-    //if (flags & Message::Highlight)
-    //    line->setHighlight(true);
     if (m_scrollToNewLine) {
         list->scrollToPosition(ScrollPosition::End, ScrollAnimation::Default);
         m_scrollToNewLine = false;
@@ -88,6 +90,7 @@ ChatLine::ChatLine(Container *parent) :
 
     m_itemLabel = Label::create().text("");
     m_itemLabel->setVerticalAlignment(VerticalAlignment::Center);
+    m_itemLabel->setLayoutProperties(StackLayoutProperties::create().spaceQuota(1));
     m_itemLabel->setMultiline(true);
     m_itemLabel->setLeftMargin(30.0f);
 
@@ -143,14 +146,18 @@ void ChannelListItemProvider::updateItem(ListView* list, VisualNode *listItem, c
 {
     Q_UNUSED(list);
     Q_UNUSED(indexPath);
+    Q_UNUSED(data);
+
+    QModelIndex itemModelIndex = qobject_cast<DataModelAdapter*>(list->dataModel())->getQModelIndex(indexPath, 0);
+    QString name = itemModelIndex.data(ChatLineModel::DisplayRole).toString();
+    uint foreground = itemModelIndex.data(Qt::ForegroundRole).toUInt();
+
     if (type == "header") {
         ChannelListHeader* header = qobject_cast<ChannelListHeader*>(listItem);
-        header->updateItem(data.toString());
+        header->updateItem(name, foreground);
     } else {
         ChannelListItem* item = qobject_cast<ChannelListItem*>(listItem);
-        QModelIndex itemModelIndex = qobject_cast<DataModelAdapter*>(list->dataModel())->getQModelIndex(indexPath, 0);
-        QString name = itemModelIndex.data(ChatLineModel::DisplayRole).toString();
-        uint foreground = itemModelIndex.data(Qt::ForegroundRole).toUInt();
+
         //QString text = "<html><span style='font-family:Courier New; font-size:18pt; color:" + foreground + ";'>" + name + "</span></html>";
         //qDebug() << "xxxxx ChannelListItemProvider::updateItem " << text << foreground;
         item->updateItem(name, foreground);
@@ -193,7 +200,7 @@ ChannelListHeader::ChannelListHeader(Container* parent)
     TextStyle textStyle;
     textStyle.setFontSizeValue(FontSize::Medium);
     textStyle.setFontWeight(FontWeight::Bold);
-    textStyle.setColor(Color::LightGray);
+    //textStyle.setColor(Color::LightGray);
 
     m_itemLabel = Label::create().text("").textStyle(textStyle);
     m_itemLabel->setVerticalAlignment(VerticalAlignment::Center);
@@ -206,9 +213,10 @@ ChannelListHeader::ChannelListHeader(Container* parent)
 
     setRoot(m_container);
 }
-void ChannelListHeader::updateItem(const QString text)
+void ChannelListHeader::updateItem(const QString text, const uint color)
 {
     m_itemLabel->setText(text);
+    m_itemLabel->textStyle()->setColor(Color::fromARGB(color));
 }
 void ChannelListHeader::select(bool select)
 {

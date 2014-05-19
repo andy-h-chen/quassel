@@ -30,6 +30,9 @@ class Bb10UiSettings : public UiSettings
 public:
     Bb10UiSettings(const QString &subGroup);
     Bb10UiSettings();
+
+    inline QString timestampFormatString() { return localValue("TimestampFormat", "[hh:mm:ss]").toString(); }
+    inline void setTimestampFormatString(const QString &format) { setLocalValue("TimestampFormat", format); }
 };
 
 

@@ -18,7 +18,6 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.         *
  ***************************************************************************/
 
-//#include "chatviewsettings.h"
 #include "bb10uistyle.h"
 
 #include <bb/cascades/Application>
@@ -48,9 +47,9 @@ Bb10UiStyle::Bb10UiStyle(QObject *parent) : QObject(parent)
     _formatCodes["%DM"] = ModeFlags;
     _formatCodes["%DU"] = Url;
 
-    //ChatViewSettings s;
-    //s.notify("TimestampFormat", this, SLOT(updateTimestampFormatString()));
-    //updateTimestampFormatString();
+    Bb10UiSettings s;
+    s.notify("TimestampFormat", this, SLOT(updateTimestampFormatString()));
+    updateTimestampFormatString();
     loadStyleSheet();
 }
 
@@ -61,10 +60,17 @@ Bb10UiStyle::~Bb10UiStyle() {
 
 void Bb10UiStyle::updateTimestampFormatString()
 {
-    //ChatViewSettings s;
-    //setTimestampFormatString(s.timestampFormatString());
+    Bb10UiSettings s;
+    setTimestampFormatString(s.timestampFormatString());
 }
 
+void Bb10UiStyle::setTimestampFormatString(const QString &format)
+{
+    if (_timestampFormatString != format) {
+        _timestampFormatString = format;
+        // FIXME reload
+    }
+}
 
 void Bb10UiStyle::generateSettingsQss() const
 {
@@ -546,12 +552,14 @@ Bb10UiStyle::StyledString Bb10UiStyle::styleString(const QString &s_, quint32 ba
     }
     result.plainText = s;
     ClickableList cl = ClickableList::fromString(s);
+    bool foundUrl = false;
     for (int i=0; i<cl.size(); i++) {
         Clickable c = cl.at(i);
         if (c.type() == Clickable::Url) {
             QString str = s.mid(c.start(), c.length());
             QString link = !str.contains("://") ? "http://" + str : str;
             s.replace(str, "<a href='" + link + "'>" + str.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;") + "</a>");
+            foundUrl = true;
             break;  // Assume only one link in each message
         }
     }
@@ -563,7 +571,7 @@ Bb10UiStyle::StyledString Bb10UiStyle::styleString(const QString &s_, quint32 ba
         QTextCharFormat fmt = Bb10Ui::uiStyle()->format(result.formatList.at(i).second, 0);
         //result.formatedHtml += "<span style='background-color:" + fmt.background().color().name() + "; color:" + fmt.foreground().color().name() + ";'>";
         result.formatedHtml += "<span style='color:" + fmt.foreground().color().name() + ";'>";
-        if (cl.size())
+        if (foundUrl)
             result.formatedHtml += s.mid(prevPos, pos - prevPos);
         else
             result.formatedHtml += s.mid(prevPos, pos - prevPos).replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;");
@@ -572,13 +580,12 @@ Bb10UiStyle::StyledString Bb10UiStyle::styleString(const QString &s_, quint32 ba
     }
     
     if (prevPos < s.length()) {
-        if (cl.size())
+        if (foundUrl)
             result.formatedHtml += s.right(s.length() - prevPos);
         else
-            result.formatedHtml += s.right(s.length() - prevPos).replace("<", "&lt;").replace(">", "&gt;");
+            result.formatedHtml += s.right(s.length() - prevPos).replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;");
     }
     result.formatedHtml += "</span>";
-    qDebug() << "xxxxx result.formatedHtml = " << result.formatedHtml << prevPos << s.length();
     return result;
 }
 
@@ -824,7 +831,7 @@ const Bb10UiStyle::FormatList &Bb10UiStyle::StyledMessage::contentsFormatList() 
 
 QString Bb10UiStyle::StyledMessage::decoratedTimestamp() const
 {
-    return timestamp().toLocalTime().toString(UiStyle::timestampFormatString());
+    return timestamp().toLocalTime().toString(Bb10UiStyle::timestampFormatString());
 }
 
 

@@ -37,6 +37,7 @@
 
 #include <QItemSelectionModel>
 #include <QModelIndex>
+#include <QUrl>
 
 #include "bb10uisettings.h"
 #include "bb10uistyle.h"
@@ -200,6 +201,7 @@ void Bb10Ui::setConnectedState()
         if (net->connectionState() != Network::Disconnected)
             m_connect->setEnabled(false);
     }
+    Client::backlogManager()->requestInitialBacklog();
 }
 
 void Bb10Ui::showNewIdentityPage()
@@ -443,6 +445,10 @@ void Bb10Ui::messagesInserted(const QModelIndex &parent, int start, int end)
             pNotification->setTitle("Quassel IRC for BB10");
             pNotification->setBody(body);
             pNotification->setInvokeRequest(m_invokeRequest);
+            QUrl url = QUrl("file://" + QDir("./app/public/quassel.png").absolutePath());
+            //QUrl url = QUrl("app/public/quassel.png");
+            qDebug() << "xxxxx Bb10Ui::messagesInserted url.isValid = " << url.isValid() << " isLocalFile = " << url.isLocalFile() << " path = " << url.path();
+            pNotification->setIconUrl(url);
             // FIXME: call setData to add bufferId, so that we can open the page.
             pNotification->notify();
         }
@@ -453,6 +459,8 @@ void Bb10Ui::onFullscreen()
 {
     qDebug() << "xxxxx Bb10Ui::onFullscreen";
     m_appState = FullScreen;
+    Notification* pNotification = new Notification();
+    pNotification->clearEffects();
 }
 
 void Bb10Ui::onThumbnail()
@@ -515,6 +523,7 @@ void Bb10Ui::updateConnectionState(Network::ConnectionState s)
     default:
         break;
     }
+    
 }
 
 void Bb10Ui::showJoinChannelDlg()
