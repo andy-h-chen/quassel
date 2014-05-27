@@ -59,7 +59,7 @@ cat <<EOM >$FILE
 <qnx xmlns="http://www.qnx.com/schemas/application/1.0">
     <id>quassel-irc-bb10</id>
     <name>Quassel IRC For BB10</name>
-    <versionNumber>0.5.0</versionNumber>
+    <versionNumber>0.7.0</versionNumber>
     <buildId>1</buildId>
     <description>Quassel IRC</description>
     <author>Andy H. Chen</author>
@@ -85,7 +85,7 @@ cat <<EOM >$FILE
     <icon>
         <image>quassel.png</image>
     </icon>
-    <asset path="share/icons/hicolor/114x114/apps/quassel.png">quassel.png</asset>
+    <asset path="share/icons/hicolor/114x114/apps/quassel.png" public="true">quassel.png</asset>
     <asset path="share/apps">apps</asset>
     <asset path="share/icons/bb10icons">icons</asset>
     <asset path="assets">assets</asset>   

@@ -82,10 +82,14 @@ ChatView::ChatView(BufferId id, QString& name)
         .onKeyPressed(this, SLOT(onKeyPressHandler(bb::cascades::KeyEvent*)));
     m_input->addKeyListener(inputKeyListener);
 
-    ActionItem* nickList = ActionItem::create()
-    .title("Nick List").image(Image("icons/nicklist.png"));
-    connect(nickList, SIGNAL(triggered()), this, SLOT(showNicks()));
-    m_page->addAction(nickList, ActionBarPlacement::OnBar);
+    BufferInfo::Type bufferType = Client::networkModel()->bufferType(m_id);
+
+    if (bufferType == BufferInfo::ChannelBuffer) {
+        ActionItem* nickList = ActionItem::create()
+        .title("Nick List").image(Image("icons/nicklist.png"));
+        connect(nickList, SIGNAL(triggered()), this, SLOT(showNicks()));
+        m_page->addAction(nickList, ActionBarPlacement::OnBar);
+    }
 
     ActionItem* backAction = ActionItem::create();
     connect(backAction, SIGNAL(triggered()), Bb10Ui::instance(), SLOT(navPanePop()));
