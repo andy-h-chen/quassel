@@ -58,8 +58,8 @@ cat <<EOM >$FILE
 <?xml version="1.0" encoding="utf-8" standalone="no"?>
 <qnx xmlns="http://www.qnx.com/schemas/application/1.0">
     <id>quassel-irc-bb10</id>
-    <name>Quassel IRC For BB10</name>
-    <versionNumber>0.7.0</versionNumber>
+    <name>Quassel IRC For BlackBerry 10</name>
+    <versionNumber>0.7.2</versionNumber>
     <buildId>1</buildId>
     <description>Quassel IRC</description>
     <author>Andy H. Chen</author>
@@ -69,7 +69,7 @@ cat <<EOM >$FILE
         <transparent>false</transparent>
     </initialWindow>
     <invoke-target id="quassel.irc.bb10">
-        <name>Quassel IRC for BB10</name>
+        <name>Quassel IRC for BlackBerry 10</name>
         <icon><image>quassel.png</image></icon>
         <type>APPLICATION</type>
         <filter>
@@ -93,6 +93,7 @@ cat <<EOM >$FILE
     <permission>run_when_backgrounded</permission>
     <permission>post_notification</permission>
     <env var="LD_LIBRARY_PATH" value="app/native/lib:/usr/lib/qt4/lib"/>
+    <env var="CASCADES_THEME" value="dark"/>
 </qnx>
 
 EOM
