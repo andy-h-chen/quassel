@@ -2,7 +2,7 @@ Quassel IRC for BB10 - Release Notes
 ====================================
 
 The UI for BB10 is based on a clone of the origin Quassel IRC (SHA: bb58444).
-It is still under review in BlackBerry World.
+It is available from BlackBerry World at http://appworld.blackberry.com/webstore/content/54524889
 
 You can find some screenshots in https://github.com/andy-h-chen/quassel/tree/master/bb10screenshots/
 
